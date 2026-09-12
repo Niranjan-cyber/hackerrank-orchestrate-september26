@@ -634,13 +634,20 @@ class VariableSpendTest(unittest.TestCase):
 
         grocery_projected = [e for e in projected if e.category == "groceries"]
         self.assertTrue(grocery_projected)
-        # One projected debit per month in the horizon (median observed day is the 20th,
-        # so May 20 is outside the horizon ending on May 2).
+        # One projected debit per month in the horizon (placed on the earliest observed
+        # day, the 5th, so May 5 is outside the horizon ending on May 2).
         months = sorted({e.cash_date.month for e in grocery_projected})
         self.assertEqual(months, [2, 3, 4])
 
     def test_variable_estimator_selectable(self):
         events = (
+            make_event(
+                event_id="g0",
+                category="groceries",
+                amount="300",
+                settlement_date="2024-11-05",
+                status="settled",
+            ),
             make_event(
                 event_id="g1",
                 category="groceries",

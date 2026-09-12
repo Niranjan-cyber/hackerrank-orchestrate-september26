@@ -55,7 +55,7 @@ def projected_effects(
     """
     rates = rates or {}
     streams = _detect_streams(position, events, request, profile, config, rates)
-    explicit = _explicit_suppression_set(position)
+    explicit = _explicit_suppression_set(position, events)
     projected: list[CashEffect] = []
     horizon_end = request.request_date + timedelta(days=config.horizon_days)
     for stream in streams:
@@ -89,6 +89,7 @@ class _RecurrenceStream:
 
 def _explicit_suppression_set(
     position: CashPosition,
+    events: tuple[Event, ...],
 ) -> set[tuple[str, str, str, date]]:
     """Dates already covered by an explicit future row for a given category stream.
 
@@ -96,12 +97,19 @@ def _explicit_suppression_set(
     "Next confirmed salary" suppresses a projected salary on the same date even when
     the descriptions differ.
     """
+    event_type_by_id = {event.event_id: event.event_type for event in events}
     suppressed: set[tuple[str, str, str, date]] = set()
     for effect in position.effects:
         if effect.state not in (RESERVED_DEBIT, EXPECTED_CREDIT):
             continue
+        event_type = event_type_by_id.get(effect.event_id, "")
         suppressed.add(
-            (effect.category, _direction_for_state(effect.state), "*", effect.cash_date)
+            (
+                effect.category,
+                _direction_for_state(effect.state),
+                event_type,
+                effect.cash_date,
+            )
         )
     return suppressed
 
@@ -181,9 +189,7 @@ def _detect_fixed_streams(
                 if group_key[:3] != base_key:
                     continue
                 rep = group[0]
-                if _similar_description(
-                    event.description, rep.description, config.description_similarity
-                ):
+                if _similar_description(event.description, rep.description, config):
                     group.append(event)
                     break
             else:
@@ -191,11 +197,15 @@ def _detect_fixed_streams(
 
     streams: list[_RecurrenceStream] = []
     for key, group in desc_groups:
-        by_day: dict[int, list[Event]] = {}
-        for event in group:
-            by_day.setdefault(event.cash_date.day, []).append(event)
-
-        for day, day_group in by_day.items():
+        # Cluster observed days-of-month using the monthly tolerance ladder so that
+        # a stream that lands on slightly different days still groups together.
+        day_clusters = _cluster_days(
+            [e.cash_date.day for e in group], config.monthly_date_tolerance_days
+        )
+        for cluster_days in day_clusters:
+            day_group = [e for e in group if e.cash_date.day in cluster_days]
+            if not day_group:
+                continue
             # Sort newest first so the last observed amount is the reference.
             day_group_sorted = sorted(
                 day_group, key=lambda e: e.cash_date, reverse=True
@@ -246,7 +256,7 @@ def _detect_variable_streams(
 
     streams: list[_RecurrenceStream] = []
     for key, group in by_key.items():
-        if not group:
+        if len(group) < config.min_occurrences:
             continue
         totals = _monthly_totals_ordered(group, profile.home_currency, rates)
         if not totals:
@@ -254,8 +264,9 @@ def _detect_variable_streams(
         estimator = _variable_estimator(config.variable_spend_estimator)
         monthly_total = estimator(totals)
         latest = max(group, key=lambda e: (e.cash_date, e.event_id))
-        days = [e.cash_date.day for e in group]
-        placement_day = _median_day(days)
+        # Place the monthly total on the earliest observed day-of-month to keep the
+        # projection conservative (earlier debits, later credits are safer for floor).
+        placement_day = min(e.cash_date.day for e in group)
         norm = _normalize_description(latest.description)
         streams.append(
             _RecurrenceStream(
@@ -271,6 +282,25 @@ def _detect_variable_streams(
             )
         )
     return streams
+
+
+def _cluster_days(days: list[int], tolerance: int) -> list[list[int]]:
+    """Group day-of-month values within `tolerance` of a canonical day.
+
+    Each cluster is anchored at its smallest day and greedily collects all days
+    within +/- `tolerance`. This keeps semi-monthly patterns split while allowing
+    a fixed stream to wobble by a few days month to month.
+    """
+    if not days:
+        return []
+    remaining = sorted(days)
+    clusters: list[list[int]] = []
+    while remaining:
+        canonical = remaining[0]
+        cluster = [d for d in remaining if abs(d - canonical) <= tolerance]
+        clusters.append(cluster)
+        remaining = [d for d in remaining if d not in cluster]
+    return clusters
 
 
 def _stream_from_events(
@@ -320,15 +350,16 @@ def _project_stream(
     # Move to the first candidate month; if request_date is before the stream day,
     # the same month may still produce a future occurrence.
     current = date(year, month, 1)
+    event_type = stream.stream_key[2]
 
     while current <= horizon_end:
         candidate = _clamped_date(current.year, current.month, stream.day_of_month)
-        candidate = _roll_weekend(candidate, stream.direction, config)
+        candidate = _roll_weekend(candidate, stream.direction)
         if candidate > request_date and candidate <= horizon_end:
             if (
                 stream.category,
                 stream.direction,
-                "*",
+                event_type,
                 candidate,
             ) not in explicit:
                 state = (
@@ -390,11 +421,7 @@ _MONTHS = frozenset(
 
 
 def _normalize_description(description: str) -> str:
-    """Uppercase, strip digits, punctuation, currency codes and months, collapse whitespace.
-
-    City tails are left in place; the similarity gate decides whether they are
-    close enough to merge. This keeps meaningful 4-letter words like RENT intact.
-    """
+    """Uppercase, strip digits, punctuation, currency codes and months."""
     text = description.upper()
     text = re.sub(r"[0-9]", "", text)
     text = re.sub(r"[^A-Z\s]", "", text)
@@ -404,19 +431,19 @@ def _normalize_description(description: str) -> str:
     return text.strip()
 
 
-def _similar_description(a: str, b: str, threshold: Decimal) -> bool:
-    """Description similarity gated on a 3-token prefix match."""
+def _similar_description(a: str, b: str, config: Config) -> bool:
+    """Description similarity gated on a prefix-token match."""
     norm_a = _normalize_description(a)
     norm_b = _normalize_description(b)
     if not norm_a or not norm_b:
         return norm_a == norm_b
     tokens_a = norm_a.split()
     tokens_b = norm_b.split()
-    prefix_len = min(3, len(tokens_a), len(tokens_b))
+    prefix_len = min(config.description_prefix_tokens, len(tokens_a), len(tokens_b))
     if tokens_a[:prefix_len] != tokens_b[:prefix_len]:
         return False
     ratio = Decimal(str(SequenceMatcher(None, norm_a, norm_b).ratio()))
-    return ratio >= threshold
+    return ratio >= config.description_similarity
 
 
 def _monthly_totals_ordered(
@@ -483,9 +510,8 @@ def _clamped_date(year: int, month: int, day: int) -> date:
     return date(year, month, min(day, last_day))
 
 
-def _roll_weekend(candidate: date, direction: str, config: Config) -> date:
-    if not config.project_weekend_rolls:
-        return candidate
+def _roll_weekend(candidate: date, direction: str) -> date:
+    """Roll weekend dates to the nearest weekday: debits forward, credits back."""
     if direction == "credit":
         return _previous_weekday(candidate)
     return _next_weekday(candidate)

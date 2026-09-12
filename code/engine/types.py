@@ -182,7 +182,7 @@ class Config:
     annual_date_tolerance_days: int = 10
     variable_spend_categories: tuple[str, ...] = ("groceries", "transport", "dining")
     protected_two_occurrence_project: bool = True
-    project_weekend_rolls: bool = True
+    description_prefix_tokens: int = 3
 
 
 # --- output -----------------------------------------------------------------------
