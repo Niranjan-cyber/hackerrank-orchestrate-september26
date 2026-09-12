@@ -25,8 +25,11 @@ replace the body of `_decide` without touching anything around it.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from .cash import cash_position
 from .money import ZERO, clamp, format_plan_amount
+from .recurrence import projected_effects
 from .types import Config, Dataset, Fact, OutputRow, Reason
 
 
@@ -51,7 +54,9 @@ def run_pipeline(
     )
 
 
-def _decide(request, dataset: Dataset, facts: tuple[Fact, ...], config: Config) -> OutputRow:
+def _decide(
+    request, dataset: Dataset, facts: tuple[Fact, ...], config: Config
+) -> OutputRow:
     profile = dataset.profiles[request.user_id]
     reasons: list[Reason] = []
 
@@ -64,6 +69,28 @@ def _decide(request, dataset: Dataset, facts: tuple[Fact, ...], config: Config) 
         dataset.events_by_user.get(request.user_id, ()),
         dataset.rates,
     )
+
+    # Ticket 05: layer inferred recurring streams onto the cash position. The
+    # simulator (Ticket 06) will consume these; the placeholder rule below still
+    # ignores them so the output contract stays valid until simulation lands.
+    projected = projected_effects(
+        position,
+        dataset.events_by_user.get(request.user_id, ()),
+        request,
+        profile,
+        config,
+        dataset.rates,
+    )
+    if projected:
+        position = replace(
+            position,
+            effects=tuple(
+                sorted(
+                    position.effects + projected,
+                    key=lambda e: (e.cash_date, e.event_id),
+                )
+            ),
+        )
 
     # --- TICKET 01 placeholder rule: today's headroom, nothing projected ----------
     # Still deliberately naive. The reserved debits below are *known* and already
@@ -102,6 +129,24 @@ def _decide(request, dataset: Dataset, facts: tuple[Fact, ...], config: Config) 
                 code=effect.reason_code,
                 event_id=effect.event_id,
                 detail=f"amount unresolved, due {effect.cash_date.isoformat()}",
+            )
+        )
+    for effect in position.projected_debits:
+        reasons.append(
+            Reason(
+                code=effect.reason_code,
+                event_id=effect.event_id,
+                amount=effect.amount_home,
+                detail=f"projected recurring expense due {effect.cash_date.isoformat()}",
+            )
+        )
+    for effect in position.projected_credits:
+        reasons.append(
+            Reason(
+                code=effect.reason_code,
+                event_id=effect.event_id,
+                amount=effect.amount_home,
+                detail=f"projected recurring income due {effect.cash_date.isoformat()}",
             )
         )
     reasons.append(

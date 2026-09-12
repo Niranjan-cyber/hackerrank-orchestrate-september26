@@ -174,6 +174,16 @@ class Config:
     variable_spend_estimator: str = "max_median3_mean6"
     project_income_beyond_confirmed: bool = True
 
+    # recurrence boundaries / calibration, ticket 05/14
+    weekly_date_tolerance_days: int = 2
+    biweekly_date_tolerance_days: int = 3
+    monthly_date_tolerance_days: int = 5
+    quarterly_date_tolerance_days: int = 7
+    annual_date_tolerance_days: int = 10
+    variable_spend_categories: tuple[str, ...] = ("groceries", "transport", "dining")
+    protected_two_occurrence_project: bool = True
+    project_weekend_rolls: bool = True
+
 
 # --- output -----------------------------------------------------------------------
 

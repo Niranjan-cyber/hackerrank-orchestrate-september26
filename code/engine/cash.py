@@ -55,6 +55,12 @@ EXCLUDED = "excluded"
 UNKNOWN_AMOUNT = "unknown_amount"
 """A future cash event whose amount is blank and unresolved. NEVER treat as zero."""
 
+PROJECTED_DEBIT = "projected_debit"
+"""Inferred recurring outflow projected from historical pattern (Ticket 05)."""
+
+PROJECTED_CREDIT = "projected_credit"
+"""Inferred recurring inflow projected from historical pattern (Ticket 05)."""
+
 
 # --- reason codes -----------------------------------------------------------------
 # Every effect carries one, so ticket 09 can explain a number without re-deriving why.
@@ -70,6 +76,9 @@ CANCELLED_IGNORED = "CANCELLED_IGNORED"
 FAILED_IGNORED = "FAILED_IGNORED"
 NON_CASH_IGNORED = "NON_CASH_IGNORED"
 BLANK_AMOUNT_UNRESOLVED = "BLANK_AMOUNT_UNRESOLVED"
+PROJECTED_RECURRING_EXPENSE = "PROJECTED_RECURRING_EXPENSE"
+PROJECTED_RECURRING_INCOME = "PROJECTED_RECURRING_INCOME"
+PROJECTED_VARIABLE_SPENDING = "PROJECTED_VARIABLE_SPENDING"
 
 CLOSED_STATUSES = frozenset({"settled", "cancelled", "failed", "unrealized"})
 OPEN_STATUSES = frozenset({"pending", "scheduled"})
@@ -159,6 +168,10 @@ class CashEffect:
         if self.state == RESERVED_DEBIT:
             return -self.amount_home
         if self.state == EXPECTED_CREDIT:
+            return self.amount_home
+        if self.state == PROJECTED_DEBIT:
+            return -self.amount_home
+        if self.state == PROJECTED_CREDIT:
             return self.amount_home
         return ZERO
 
@@ -277,6 +290,14 @@ class CashPosition:
     @property
     def expected_credits(self) -> tuple[CashEffect, ...]:
         return tuple(e for e in self.effects if e.state == EXPECTED_CREDIT)
+
+    @property
+    def projected_debits(self) -> tuple[CashEffect, ...]:
+        return tuple(e for e in self.effects if e.state == PROJECTED_DEBIT)
+
+    @property
+    def projected_credits(self) -> tuple[CashEffect, ...]:
+        return tuple(e for e in self.effects if e.state == PROJECTED_CREDIT)
 
     @property
     def unknown_amounts(self) -> tuple[CashEffect, ...]:

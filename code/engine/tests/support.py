@@ -113,18 +113,24 @@ def make_profile(
     home_currency: str = "INR",
     balance: str = "10000",
     minimum: str = "2000",
+    financial_priorities: tuple[str, ...] = (),
+    protected_categories: tuple[str, ...] = (),
+    reducible_categories: tuple[str, ...] = (),
+    stoppable_categories: tuple[str, ...] = (),
+    payment_methods_considered: tuple[str, ...] = ("full_payment",),
+    max_installment_months: int | None = None,
 ) -> Profile:
     return Profile(
         user_id=user_id,
         home_currency=home_currency,
         current_available_balance=Decimal(balance),
         minimum_balance_to_keep=Decimal(minimum),
-        financial_priorities=(),
-        protected_categories=(),
-        reducible_categories=(),
-        stoppable_categories=(),
-        payment_methods_considered=("full_payment",),
-        max_installment_months=None,
+        financial_priorities=financial_priorities,
+        protected_categories=protected_categories,
+        reducible_categories=reducible_categories,
+        stoppable_categories=stoppable_categories,
+        payment_methods_considered=payment_methods_considered,
+        max_installment_months=max_installment_months,
     )
 
 
