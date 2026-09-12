@@ -12,11 +12,11 @@ validate -> CSV), not just the core.
 
 **Owner:** OpenCode - `code/eval/**`
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Default run prints a per-column scorecard: matched and mismatched counts for each of the 8 columns
-- [ ] Default run prints a per-request table of request_id, field, expected, actual for every mismatch
-- [ ] `--update` regenerates the self-golden file for the unlabelled 250 so an accepted deviation appears as a commit diff
-- [ ] `decision_explanation` is compared structurally and reported separately; it never gates pass or fail
-- [ ] Exit status is non-zero when any non-explanation column regresses
-- [ ] Uses `sample_requests.csv` as the golden source and never writes to `dataset/`
+- [x] Default run prints a per-column scorecard: matched and mismatched counts for each of the 8 columns
+- [x] Default run prints a per-request table of request_id, field, expected, actual for every mismatch
+- [x] `--update` regenerates the self-golden file for the unlabelled 250 so an accepted deviation appears as a commit diff
+- [x] `decision_explanation` is compared structurally and reported separately; it never gates pass or fail
+- [x] Exit status is non-zero when any non-explanation column regresses
+- [x] Uses `sample_requests.csv` as the golden source and never writes to `dataset/`

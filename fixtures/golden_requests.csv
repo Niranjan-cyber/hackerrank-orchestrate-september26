@@ -1,0 +1,251 @@
+request_id,amount_safe_to_pay,affordability_status,recommended_payment_method,payment_plan,earliest_date_for_full_payment,spending_changes_needed,decision_explanation
+request_26,15656000,affordable_now,full_payment,2025-08-03:15656000,2025-08-03,none,Pay IDR 15656000 on 2025-08-03. This keeps at least IDR 24768300 available.
+request_27,6670,affordable_now,full_payment,2026-07-05:6670,2026-07-05,none,Pay ZAR 6670 on 2026-07-05. This keeps at least ZAR 20500 available.
+request_28,689.4,not_affordable,not_recommended,none,,none,Paying EUR 1302.40 is not safe on 2024-06-07. At most EUR 689.40 can be paid while keeping EUR 1100 available.
+request_29,51524,affordable_now,full_payment,2025-11-04:51524,2025-11-04,none,Pay ZAR 51524 on 2025-11-04. This keeps at least ZAR 28300 available.
+request_30,775.2,not_affordable,not_recommended,none,,none,Paying USD 775.20 is not safe on 2026-04-06. At most USD 775.20 can be paid while keeping USD 900 available.
+request_31,13840360,not_affordable,not_recommended,none,,none,Paying IDR 18164000 is not safe on 2024-09-03. At most IDR 13840360 can be paid while keeping IDR 16588900 available.
+request_32,33305.8,not_affordable,not_recommended,none,,none,Paying ZAR 40018 is not safe on 2025-02-05. At most ZAR 33305.80 can be paid while keeping ZAR 35700 available.
+request_33,65180,not_affordable,not_recommended,none,,none,Paying INR 118000 is not safe on 2026-01-07. At most INR 65180 can be paid while keeping INR 102100 available.
+request_34,129400,affordable_now,full_payment,2024-12-04:129400,2024-12-04,none,Pay INR 129400 on 2024-12-04. This keeps at least INR 138500 available.
+request_35,125130,not_affordable,not_recommended,none,,none,Paying INR 212000 is not safe on 2025-10-30. At most INR 125130 can be paid while keeping INR 106400 available.
+request_36,1446.6,not_affordable,not_recommended,none,,none,Paying USD 3954 is not safe on 2026-07-03. At most USD 1446.60 can be paid while keeping USD 2400 available.
+request_37,12068800,not_affordable,not_recommended,none,,none,Paying IDR 14649000 is not safe on 2024-03-05. At most IDR 12068800 can be paid while keeping IDR 17056200 available.
+request_38,379.4,not_affordable,not_recommended,none,,none,Paying EUR 971.30 is not safe on 2025-08-07. At most EUR 379.40 can be paid while keeping EUR 400 available.
+request_39,203105,not_affordable,not_recommended,none,,none,Paying INR 208600 is not safe on 2026-04-04. At most INR 203105 can be paid while keeping INR 213400 available.
+request_40,894,not_affordable,not_recommended,none,,none,Paying EUR 1290.30 is not safe on 2024-06-06. At most EUR 894 can be paid while keeping EUR 1500 available.
+request_41,24809250,not_affordable,not_recommended,none,,none,Paying IDR 38760000 is not safe on 2025-11-03. At most IDR 24809250 can be paid while keeping IDR 25366600 available.
+request_42,52100,affordable_now,full_payment,2026-01-05:52100,2026-01-05,none,Pay INR 52100 on 2026-01-05. This keeps at least INR 113100 available.
+request_43,15242750,not_affordable,not_recommended,none,,none,Paying IDR 43339000 is not safe on 2024-09-07. At most IDR 15242750 can be paid while keeping IDR 21398000 available.
+request_44,79390,not_affordable,not_recommended,none,,none,Paying INR 95800 is not safe on 2025-02-04. At most INR 79390 can be paid while keeping INR 82900 available.
+request_45,8833100,not_affordable,not_recommended,none,,none,Paying IDR 21983000 is not safe on 2026-07-06. At most IDR 8833100 can be paid while keeping IDR 11149800 available.
+request_46,49450,not_affordable,not_recommended,none,,none,Paying INR 49450 is not safe on 2024-12-03. At most INR 49450 can be paid while keeping INR 84000 available.
+request_47,38114000,affordable_now,full_payment,2025-05-05:38114000,2025-05-05,none,Pay IDR 38114000 on 2025-05-05. This keeps at least IDR 30049000 available.
+request_48,45700,affordable_now,full_payment,2026-07-25:45700,2026-07-25,none,Pay INR 45700 on 2026-07-25. This keeps at least INR 71300 available.
+request_49,20228793.34,not_affordable,not_recommended,none,,none,Paying IDR 34333000 is not safe on 2024-03-04. At most IDR 20228793.34 can be paid while keeping IDR 20275700 available.
+request_50,43900,affordable_now,full_payment,2025-08-06:43900,2025-08-06,none,Pay INR 43900 on 2025-08-06. This keeps at least INR 99700 available.
+request_51,2191000,affordable_now,full_payment,2026-01-03:2191000,2026-01-03,none,Pay IDR 2191000 on 2026-01-03. This keeps at least IDR 7811000 available.
+request_52,28870,affordable_now,full_payment,2024-06-05:28870,2024-06-05,none,Pay INR 28870 on 2024-06-05. This keeps at least INR 41500 available.
+request_53,1423.42,not_affordable,not_recommended,none,,none,Paying USD 1699.20 is not safe on 2025-11-07. At most USD 1423.42 can be paid while keeping USD 2100 available.
+request_54,16581.4,not_affordable,not_recommended,none,,none,Paying ZAR 121528 is not safe on 2026-07-04. At most ZAR 16581.40 can be paid while keeping ZAR 37000 available.
+request_55,190041.19,not_affordable,not_recommended,none,,none,Paying INR 218600 is not safe on 2026-06-08. At most INR 190041.19 can be paid while keeping INR 124300 available.
+request_56,881.56,not_affordable,not_recommended,none,,none,Paying USD 881.56 is not safe on 2025-02-03. At most USD 881.56 can be paid while keeping USD 2100 available.
+request_57,21214.6,not_affordable,not_recommended,none,,none,Paying ZAR 61446 is not safe on 2026-04-05. At most ZAR 21214.60 can be paid while keeping ZAR 42700 available.
+request_58,16226000,affordable_now,full_payment,2024-12-07:16226000,2024-12-07,none,Pay IDR 16226000 on 2024-12-07. This keeps at least IDR 14433900 available.
+request_59,140600,not_affordable,not_recommended,none,,none,Paying INR 140600 is not safe on 2025-05-04. At most INR 140600 can be paid while keeping INR 132600 available.
+request_60,199.89,affordable_now,full_payment,2026-01-06:199.89,2026-01-06,none,Pay USD 199.89 on 2026-01-06. This keeps at least USD 400 available.
+request_61,29062,not_affordable,not_recommended,none,,none,Paying ZAR 29062 is not safe on 2024-03-03. At most ZAR 29062 can be paid while keeping ZAR 36700 available.
+request_62,404.23,affordable_now,full_payment,2025-08-05:404.23,2025-08-05,none,Pay USD 404.23 on 2025-08-05. This keeps at least USD 1300 available.
+request_63,98295,not_affordable,not_recommended,none,,none,Paying INR 343900 is not safe on 2026-07-07. At most INR 98295 can be paid while keeping INR 153500 available.
+request_64,62473.01,not_affordable,not_recommended,none,,none,Paying INR 63700 is not safe on 2024-06-04. At most INR 62473.01 can be paid while keeping INR 36100 available.
+request_65,13024,not_affordable,not_recommended,none,,none,Paying ZAR 54340 is not safe on 2025-11-06. At most ZAR 13024 can be paid while keeping ZAR 15500 available.
+request_66,22200,affordable_now,full_payment,2026-04-03:22200,2026-04-03,none,Pay INR 22200 on 2026-04-03. This keeps at least INR 80700 available.
+request_67,792.54,not_affordable,not_recommended,none,,none,Paying USD 2094 is not safe on 2024-09-05. At most USD 792.54 can be paid while keeping USD 1200 available.
+request_68,2091.6,not_affordable,not_recommended,none,,none,Paying USD 2091.60 is not safe on 2025-02-07. At most USD 2091.60 can be paid while keeping USD 1500 available.
+request_69,529.1,affordable_now,full_payment,2026-01-04:529.10,2026-01-04,none,Pay EUR 529.10 on 2026-01-04. This keeps at least EUR 700 available.
+request_70,93360,not_affordable,not_recommended,none,,none,Paying INR 243900 is not safe on 2024-12-06. At most INR 93360 can be paid while keeping INR 115000 available.
+request_71,7485050,not_affordable,not_recommended,none,,none,Paying IDR 21451000 is not safe on 2025-05-03. At most IDR 7485050 can be paid while keeping IDR 8884800 available.
+request_72,11330,affordable_now,full_payment,2026-07-05:11330,2026-07-05,none,Pay ZAR 11330 on 2026-07-05. This keeps at least ZAR 12200 available.
+request_73,71400,affordable_now,full_payment,2023-01-20:71400,2023-01-20,none,Pay INR 71400 on 2023-01-20. This keeps at least INR 103200 available.
+request_74,5010,affordable_now,full_payment,2025-08-04:5010,2025-08-04,none,Pay ZAR 5010 on 2025-08-04. This keeps at least ZAR 21900 available.
+request_75,28270,not_affordable,not_recommended,none,,none,Paying ZAR 28270 is not safe on 2026-04-06. At most ZAR 28270 can be paid while keeping ZAR 39000 available.
+request_76,1538.8,not_affordable,not_recommended,none,,none,Paying USD 4455.60 is not safe on 2024-06-03. At most USD 1538.80 can be paid while keeping USD 1800 available.
+request_77,60700,affordable_now,full_payment,2025-11-05:60700,2025-11-05,none,Pay INR 60700 on 2025-11-05. This keeps at least INR 82200 available.
+request_78,50200,affordable_now,full_payment,2025-10-02:50200,2025-10-02,none,Pay INR 50200 on 2025-10-02. This keeps at least INR 55200 available.
+request_79,1104.08,not_affordable,not_recommended,none,,none,Paying EUR 2151.60 is not safe on 2024-09-04. At most EUR 1104.08 can be paid while keeping EUR 1000 available.
+request_80,158825,not_affordable,not_recommended,none,,none,Paying INR 217500 is not safe on 2025-02-06. At most INR 158825 can be paid while keeping INR 121300 available.
+request_81,2076,affordable_now,full_payment,2026-07-03:2076,2026-07-03,none,Pay USD 2076 on 2026-07-03. This keeps at least USD 1600 available.
+request_82,1102.4,not_affordable,not_recommended,none,,none,Paying USD 1405.20 is not safe on 2024-12-05. At most USD 1102.40 can be paid while keeping USD 1100 available.
+request_83,31130,not_affordable,not_recommended,none,,none,Paying INR 156200 is not safe on 2025-05-07. At most INR 31130 can be paid while keeping INR 37800 available.
+request_84,62645,not_affordable,not_recommended,none,,none,Paying INR 95400 is not safe on 2026-04-04. At most INR 62645 can be paid while keeping INR 91300 available.
+request_85,2422120,not_affordable,not_recommended,none,,none,Paying IDR 19304000 is not safe on 2024-03-06. At most IDR 2422120 can be paid while keeping IDR 6396300 available.
+request_86,46300,affordable_now,full_payment,2025-08-03:46300,2025-08-03,none,Pay INR 46300 on 2025-08-03. This keeps at least INR 84900 available.
+request_87,92850,not_affordable,not_recommended,none,,none,Paying INR 487900 is not safe on 2026-01-05. At most INR 92850 can be paid while keeping INR 185900 available.
+request_88,15557.89,not_affordable,not_recommended,none,,none,Paying ZAR 26092 is not safe on 2024-06-07. At most ZAR 15557.89 can be paid while keeping ZAR 25800 available.
+request_89,13756000,not_affordable,not_recommended,none,,none,Paying IDR 13756000 is not safe on 2025-11-04. At most IDR 13756000 can be paid while keeping IDR 12534700 available.
+request_90,2560,affordable_now,full_payment,2026-07-06:2560,2026-07-06,none,Pay ZAR 2560 on 2026-07-06. This keeps at least ZAR 7600 available.
+request_91,1927.2,affordable_now,full_payment,2024-09-03:1927.20,2024-09-03,none,Pay EUR 1927.20 on 2024-09-03. This keeps at least EUR 2100 available.
+request_92,34034,affordable_now,full_payment,2025-02-05:34034,2025-02-05,none,Pay ZAR 34034 on 2025-02-05. This keeps at least ZAR 28100 available.
+request_93,1729.2,affordable_now,full_payment,2026-04-07:1729.20,2026-04-07,none,Pay USD 1729.20 on 2026-04-07. This keeps at least USD 1900 available.
+request_94,572,affordable_now,full_payment,2024-12-04:572,2024-12-04,none,Pay EUR 572 on 2024-12-04. This keeps at least EUR 600 available.
+request_95,137865,not_affordable,not_recommended,none,,none,Paying INR 553000 is not safe on 2025-05-06. At most INR 137865 can be paid while keeping INR 145500 available.
+request_96,90200,not_affordable,not_recommended,none,,none,Paying INR 90200 is not safe on 2026-01-03. At most INR 90200 can be paid while keeping INR 56500 available.
+request_97,8865.89,not_affordable,not_recommended,none,,none,Paying ZAR 23496 is not safe on 2024-03-05. At most ZAR 8865.89 can be paid while keeping ZAR 29700 available.
+request_98,17244.7,not_affordable,not_recommended,none,,none,Paying ZAR 27148 is not safe on 2025-08-07. At most ZAR 17244.70 can be paid while keeping ZAR 30000 available.
+request_99,18062,affordable_now,full_payment,2026-07-04:18062,2026-07-04,none,Pay ZAR 18062 on 2026-07-04. This keeps at least ZAR 49100 available.
+request_100,35863.53,not_affordable,not_recommended,none,,none,Paying ZAR 37114 is not safe on 2024-06-06. At most ZAR 35863.53 can be paid while keeping ZAR 32500 available.
+request_101,143500,affordable_now,full_payment,2025-11-03:143500,2025-11-03,none,Pay INR 143500 on 2025-11-03. This keeps at least INR 187400 available.
+request_102,1716,not_affordable,not_recommended,none,,none,Paying EUR 1716 is not safe on 2026-04-05. At most EUR 1716 can be paid while keeping EUR 900 available.
+request_103,43249,not_affordable,not_recommended,none,,none,Paying INR 368300 is not safe on 2024-09-07. At most INR 43249 can be paid while keeping INR 125500 available.
+request_104,17204,affordable_now,full_payment,2025-02-04:17204,2025-02-04,none,Pay ZAR 17204 on 2025-02-04. This keeps at least ZAR 24700 available.
+request_105,53500,affordable_now,full_payment,2026-06-08:53500,2026-06-08,none,Pay INR 53500 on 2026-06-08. This keeps at least INR 73900 available.
+request_106,1401.7,not_affordable,not_recommended,none,,none,Paying EUR 2207.70 is not safe on 2024-12-03. At most EUR 1401.70 can be paid while keeping EUR 1200 available.
+request_107,2534.4,not_affordable,not_recommended,none,,none,Paying EUR 2534.40 is not safe on 2025-05-05. At most EUR 2534.40 can be paid while keeping EUR 1600 available.
+request_108,7836.4,not_affordable,not_recommended,none,,none,Paying ZAR 55308 is not safe on 2026-07-07. At most ZAR 7836.40 can be paid while keeping ZAR 24100 available.
+request_109,1276.46,not_affordable,not_recommended,none,,none,Paying EUR 1863.40 is not safe on 2024-03-04. At most EUR 1276.46 can be paid while keeping EUR 1700 available.
+request_110,22352,not_affordable,not_recommended,none,,none,Paying ZAR 22352 is not safe on 2025-08-06. At most ZAR 22352 can be paid while keeping ZAR 11200 available.
+request_111,16625000,affordable_now,full_payment,2026-04-03:16625000,2026-04-03,none,Pay IDR 16625000 on 2026-04-03. This keeps at least IDR 23022800 available.
+request_112,271.7,affordable_now,full_payment,2024-06-05:271.70,2024-06-05,none,Pay EUR 271.70 on 2024-06-05. This keeps at least EUR 500 available.
+request_113,36500,affordable_now,full_payment,2026-09-04:36500,2026-09-04,none,Pay INR 36500 on 2026-09-04. This keeps at least INR 82300 available.
+request_114,65300,affordable_now,full_payment,2026-01-04:65300,2026-01-04,none,Pay INR 65300 on 2026-01-04. This keeps at least INR 113400 available.
+request_115,27135,not_affordable,not_recommended,none,,none,Paying INR 80500 is not safe on 2024-09-06. At most INR 27135 can be paid while keeping INR 38800 available.
+request_116,58075,not_affordable,not_recommended,none,,none,Paying INR 241200 is not safe on 2025-02-03. At most INR 58075 can be paid while keeping INR 80300 available.
+request_117,880,affordable_now,full_payment,2026-07-05:880,2026-07-05,none,Pay EUR 880 on 2026-07-05. This keeps at least EUR 1000 available.
+request_118,738.1,not_affordable,not_recommended,none,,none,Paying EUR 738.10 is not safe on 2024-12-07. At most EUR 738.10 can be paid while keeping EUR 600 available.
+request_119,130901.01,not_affordable,not_recommended,none,,none,Paying INR 203500 is not safe on 2025-05-04. At most INR 130901.01 can be paid while keeping INR 151200 available.
+request_120,7714000,affordable_now,full_payment,2026-04-06:7714000,2026-04-06,none,Pay IDR 7714000 on 2026-04-06. This keeps at least IDR 20050300 available.
+request_121,633.6,affordable_now,full_payment,2024-03-03:633.60,2024-03-03,none,Pay USD 633.60 on 2024-03-03. This keeps at least USD 800 available.
+request_122,20558000,not_affordable,not_recommended,none,,none,Paying IDR 20558000 is not safe on 2025-08-05. At most IDR 20558000 can be paid while keeping IDR 12588500 available.
+request_123,4076000,affordable_now,full_payment,2026-01-07:4076000,2026-01-07,none,Pay IDR 4076000 on 2026-01-07. This keeps at least IDR 18091200 available.
+request_124,2109.56,not_affordable,not_recommended,none,,none,Paying EUR 3104.20 is not safe on 2024-06-04. At most EUR 2109.56 can be paid while keeping EUR 1600 available.
+request_125,6468,affordable_now,full_payment,2025-11-06:6468,2025-11-06,none,Pay ZAR 6468 on 2025-11-06. This keeps at least ZAR 11300 available.
+request_126,159600,affordable_now,full_payment,2026-07-03:159600,2026-07-03,none,Pay INR 159600 on 2026-07-03. This keeps at least INR 129700 available.
+request_127,23980,affordable_now,full_payment,2024-09-05:23980,2024-09-05,none,Pay ZAR 23980 on 2024-09-05. This keeps at least ZAR 41000 available.
+request_128,25168,affordable_now,full_payment,2025-02-07:25168,2025-02-07,none,Pay ZAR 25168 on 2025-02-07. This keeps at least ZAR 42600 available.
+request_129,288,not_affordable,not_recommended,none,,none,Paying USD 2668.80 is not safe on 2026-04-04. At most USD 288 can be paid while keeping USD 800 available.
+request_130,917.46,not_affordable,not_recommended,none,,none,Paying USD 1978.80 is not safe on 2024-12-06. At most USD 917.46 can be paid while keeping USD 1400 available.
+request_131,1855.2,not_affordable,not_recommended,none,,none,Paying USD 1855.20 is not safe on 2025-05-03. At most USD 1855.20 can be paid while keeping USD 1100 available.
+request_132,379.86,affordable_now,full_payment,2026-01-05:379.86,2026-01-05,none,Pay USD 379.86 on 2026-01-05. This keeps at least USD 1100 available.
+request_133,15770000,not_affordable,not_recommended,none,,none,Paying IDR 15770000 is not safe on 2024-03-07. At most IDR 15770000 can be paid while keeping IDR 9986200 available.
+request_134,12118200,not_affordable,not_recommended,none,,none,Paying IDR 21831000 is not safe on 2025-08-04. At most IDR 12118200 can be paid while keeping IDR 15902500 available.
+request_135,304.8,affordable_now,full_payment,2026-07-06:304.80,2026-07-06,none,Pay USD 304.80 on 2026-07-06. This keeps at least USD 500 available.
+request_136,560.4,affordable_now,full_payment,2024-06-03:560.40,2024-06-03,none,Pay USD 560.40 on 2024-06-03. This keeps at least USD 1100 available.
+request_137,67960,not_affordable,not_recommended,none,,none,Paying INR 80100 is not safe on 2025-11-05. At most INR 67960 can be paid while keeping INR 71800 available.
+request_138,1256.94,not_affordable,not_recommended,none,,none,Paying EUR 1256.94 is not safe on 2026-04-07. At most EUR 1256.94 can be paid while keeping EUR 2300 available.
+request_139,2267.84,not_affordable,not_recommended,none,,none,Paying USD 2316 is not safe on 2024-09-04. At most USD 2267.84 can be paid while keeping USD 1500 available.
+request_140,13079,not_affordable,not_recommended,none,,none,Paying ZAR 62832 is not safe on 2025-02-06. At most ZAR 13079 can be paid while keeping ZAR 21600 available.
+request_141,55245,not_affordable,not_recommended,none,,none,Paying INR 171600 is not safe on 2026-01-03. At most INR 55245 can be paid while keeping INR 67300 available.
+request_142,1263.6,affordable_now,full_payment,2024-12-05:1263.60,2024-12-05,none,Pay USD 1263.60 on 2024-12-05. This keeps at least USD 1700 available.
+request_143,8811,not_affordable,not_recommended,none,,none,Paying ZAR 12584 is not safe on 2025-05-07. At most ZAR 8811 can be paid while keeping ZAR 11300 available.
+request_144,233.34,affordable_now,full_payment,2026-07-04:233.34,2026-07-04,none,Pay USD 233.34 on 2026-07-04. This keeps at least USD 600 available.
+request_145,105613.66,not_affordable,not_recommended,none,,none,Paying INR 217400 is not safe on 2024-03-06. At most INR 105613.66 can be paid while keeping INR 155400 available.
+request_146,81465,not_affordable,not_recommended,none,,none,Paying INR 449400 is not safe on 2025-08-03. At most INR 81465 can be paid while keeping INR 108600 available.
+request_147,741.53,not_affordable,not_recommended,none,,none,Paying EUR 1129.70 is not safe on 2026-04-05. At most EUR 741.53 can be paid while keeping EUR 900 available.
+request_148,13181.08,not_affordable,not_recommended,none,,none,Paying ZAR 22242 is not safe on 2024-06-07. At most ZAR 13181.08 can be paid while keeping ZAR 20000 available.
+request_149,36652,not_affordable,not_recommended,none,,none,Paying ZAR 36652 is not safe on 2025-11-04. At most ZAR 36652 can be paid while keeping ZAR 42100 available.
+request_150,496.1,not_affordable,not_recommended,none,,none,Paying EUR 496.10 is not safe on 2026-01-06. At most EUR 496.10 can be paid while keeping EUR 700 available.
+request_151,26999000,affordable_now,full_payment,2024-09-03:26999000,2024-09-03,none,Pay IDR 26999000 on 2024-09-03. This keeps at least IDR 31633600 available.
+request_152,13882,not_affordable,not_recommended,none,,none,Paying ZAR 13882 is not safe on 2025-02-05. At most ZAR 13882 can be paid while keeping ZAR 11900 available.
+request_153,503.6,not_affordable,not_recommended,none,,none,Paying USD 2830.80 is not safe on 2026-07-07. At most USD 503.60 can be paid while keeping USD 1400 available.
+request_154,1625.8,not_affordable,not_recommended,none,,none,Paying EUR 1625.80 is not safe on 2024-12-04. At most EUR 1625.80 can be paid while keeping EUR 1300 available.
+request_155,112500,affordable_now,full_payment,2025-05-06:112500,2025-05-06,none,Pay INR 112500 on 2025-05-06. This keeps at least INR 56300 available.
+request_156,15205.3,not_affordable,not_recommended,none,,none,Paying ZAR 43076 is not safe on 2026-04-03. At most ZAR 15205.30 can be paid while keeping ZAR 26900 available.
+request_157,10091850,not_affordable,not_recommended,none,,none,Paying IDR 23503000 is not safe on 2024-03-05. At most IDR 10091850 can be paid while keeping IDR 15714100 available.
+request_158,242600,not_affordable,not_recommended,none,,none,Paying INR 242600 is not safe on 2025-08-07. At most INR 242600 can be paid while keeping INR 131400 available.
+request_159,13398,affordable_now,full_payment,2026-01-04:13398,2026-01-04,none,Pay ZAR 13398 on 2026-01-04. This keeps at least ZAR 8700 available.
+request_160,944.61,not_affordable,not_recommended,none,,none,Paying EUR 1246.30 is not safe on 2024-06-06. At most EUR 944.61 can be paid while keeping EUR 1200 available.
+request_161,18297950,not_affordable,not_recommended,none,,none,Paying IDR 21204000 is not safe on 2025-11-03. At most IDR 18297950 can be paid while keeping IDR 23010400 available.
+request_162,10446200,not_affordable,not_recommended,none,,none,Paying IDR 83923000 is not safe on 2026-07-05. At most IDR 10446200 can be paid while keeping IDR 24161100 available.
+request_163,19304000,not_affordable,not_recommended,none,,none,Paying IDR 19304000 is not safe on 2024-09-07. At most IDR 19304000 can be paid while keeping IDR 26728700 available.
+request_164,27018000,not_affordable,not_recommended,none,,none,Paying IDR 27018000 is not safe on 2025-02-04. At most IDR 27018000 can be paid while keeping IDR 29550500 available.
+request_165,80600,affordable_now,full_payment,2026-04-06:80600,2026-04-06,none,Pay INR 80600 on 2026-04-06. This keeps at least INR 95000 available.
+request_166,2907.6,not_affordable,not_recommended,none,,none,Paying USD 2907.60 is not safe on 2024-12-03. At most USD 2907.60 can be paid while keeping USD 1700 available.
+request_167,43802,affordable_now,full_payment,2025-05-05:43802,2025-05-05,none,Pay ZAR 43802 on 2025-05-05. This keeps at least ZAR 31200 available.
+request_168,49380,not_affordable,not_recommended,none,,none,Paying INR 49380 is not safe on 2026-01-07. At most INR 49380 can be paid while keeping INR 114400 available.
+request_169,41976,affordable_now,full_payment,2024-03-04:41976,2024-03-04,none,Pay ZAR 41976 on 2024-03-04. This keeps at least ZAR 18700 available.
+request_170,36936000,not_affordable,not_recommended,none,,none,Paying IDR 36936000 is not safe on 2025-08-06. At most IDR 36936000 can be paid while keeping IDR 24715800 available.
+request_171,310.65,not_affordable,not_recommended,none,,none,Paying EUR 1878.80 is not safe on 2026-07-03. At most EUR 310.65 can be paid while keeping EUR 500 available.
+request_172,10200,not_affordable,not_recommended,none,,none,Paying ZAR 10200 is not safe on 2024-06-05. At most ZAR 10200 can be paid while keeping ZAR 27200 available.
+request_173,83190.53,not_affordable,not_recommended,none,,none,Paying INR 113000 is not safe on 2025-11-07. At most INR 83190.53 can be paid while keeping INR 79100 available.
+request_174,1146.2,not_affordable,not_recommended,none,,none,Paying EUR 1146.20 is not safe on 2026-04-04. At most EUR 1146.20 can be paid while keeping EUR 700 available.
+request_175,2346.3,affordable_now,full_payment,2024-09-06:2346.30,2024-09-06,none,Pay EUR 2346.30 on 2024-09-06. This keeps at least EUR 1700 available.
+request_176,686.95,not_affordable,not_recommended,none,,none,Paying EUR 1239.70 is not safe on 2025-02-03. At most EUR 686.95 can be paid while keeping EUR 600 available.
+request_177,1017.6,affordable_now,full_payment,2026-01-05:1017.60,2026-01-05,none,Pay USD 1017.60 on 2026-01-05. This keeps at least USD 1300 available.
+request_178,2938.1,not_affordable,not_recommended,none,,none,Paying EUR 2938.10 is not safe on 2024-12-07. At most EUR 2938.10 can be paid while keeping EUR 1400 available.
+request_179,37957250,not_affordable,not_recommended,none,,none,Paying IDR 41648000 is not safe on 2025-05-04. At most IDR 37957250 can be paid while keeping IDR 41430800 available.
+request_180,66500,affordable_now,full_payment,2026-07-06:66500,2026-07-06,none,Pay INR 66500 on 2026-07-06. This keeps at least INR 37300 available.
+request_181,1362,not_affordable,not_recommended,none,,none,Paying USD 5059.20 is not safe on 2024-03-03. At most USD 1362 can be paid while keeping USD 2000 available.
+request_182,65714,affordable_now,full_payment,2025-08-05:65714,2025-08-05,none,Pay ZAR 65714 on 2025-08-05. This keeps at least ZAR 31100 available.
+request_183,26866000,not_affordable,not_recommended,none,,none,Paying IDR 26866000 is not safe on 2026-04-07. At most IDR 26866000 can be paid while keeping IDR 11878300 available.
+request_184,52360,not_affordable,not_recommended,none,,none,Paying INR 251900 is not safe on 2024-06-04. At most INR 52360 can be paid while keeping INR 110800 available.
+request_185,783.4,not_affordable,not_recommended,none,,none,Paying EUR 1257.30 is not safe on 2025-11-06. At most EUR 783.40 can be paid while keeping EUR 1300 available.
+request_186,22863.5,not_affordable,not_recommended,none,,none,Paying ZAR 26554 is not safe on 2026-01-03. At most ZAR 22863.50 can be paid while keeping ZAR 22000 available.
+request_187,67435,not_affordable,not_recommended,none,,none,Paying INR 187500 is not safe on 2024-09-05. At most INR 67435 can be paid while keeping INR 128300 available.
+request_188,585.3,not_affordable,not_recommended,none,,none,Paying EUR 2464 is not safe on 2025-02-07. At most EUR 585.30 can be paid while keeping EUR 900 available.
+request_189,488.4,affordable_now,full_payment,2026-07-04:488.40,2026-07-04,none,Pay EUR 488.40 on 2026-07-04. This keeps at least EUR 400 available.
+request_190,1555.8,not_affordable,not_recommended,none,,none,Paying EUR 2557.50 is not safe on 2024-12-06. At most EUR 1555.80 can be paid while keeping EUR 1600 available.
+request_191,664.4,affordable_now,full_payment,2025-05-03:664.40,2025-05-03,none,Pay EUR 664.40 on 2025-05-03. This keeps at least EUR 500 available.
+request_192,384.8,not_affordable,not_recommended,none,,none,Paying USD 2046 is not safe on 2026-04-05. At most USD 384.80 can be paid while keeping USD 1000 available.
+request_193,310.62,not_affordable,not_recommended,none,,none,Paying EUR 1212.20 is not safe on 2024-03-07. At most EUR 310.62 can be paid while keeping EUR 1000 available.
+request_194,95030,not_affordable,not_recommended,none,,none,Paying INR 132800 is not safe on 2025-08-04. At most INR 95030 can be paid while keeping INR 113600 available.
+request_195,1170.4,not_affordable,not_recommended,none,,none,Paying EUR 1170.40 is not safe on 2026-01-06. At most EUR 1170.40 can be paid while keeping EUR 700 available.
+request_196,762.3,affordable_now,full_payment,2024-06-03:762.30,2024-06-03,none,Pay EUR 762.30 on 2024-06-03. This keeps at least EUR 500 available.
+request_197,50939000,not_affordable,not_recommended,none,,none,Paying IDR 50939000 is not safe on 2025-11-05. At most IDR 50939000 can be paid while keeping IDR 26245900 available.
+request_198,185800,affordable_now,full_payment,2026-07-07:185800,2026-07-07,none,Pay INR 185800 on 2026-07-07. This keeps at least INR 124300 available.
+request_199,23674000,not_affordable,not_recommended,none,,none,Paying IDR 23674000 is not safe on 2024-09-04. At most IDR 23674000 can be paid while keeping IDR 25359500 available.
+request_200,21717000,affordable_now,full_payment,2025-02-06:21717000,2025-02-06,none,Pay IDR 21717000 on 2025-02-06. This keeps at least IDR 20114600 available.
+request_201,23997000,affordable_now,full_payment,2026-04-03:23997000,2026-04-03,none,Pay IDR 23997000 on 2026-04-03. This keeps at least IDR 17304500 available.
+request_202,123900,affordable_now,full_payment,2024-12-05:123900,2024-12-05,none,Pay INR 123900 on 2024-12-05. This keeps at least INR 147800 available.
+request_203,1442.1,not_affordable,not_recommended,none,,none,Paying EUR 1442.10 is not safe on 2025-05-07. At most EUR 1442.10 can be paid while keeping EUR 1400 available.
+request_204,588.74,affordable_now,full_payment,2026-01-04:588.74,2026-01-04,none,Pay EUR 588.74 on 2026-01-04. This keeps at least EUR 1300 available.
+request_205,10621000,affordable_now,full_payment,2024-03-06:10621000,2024-03-06,none,Pay IDR 10621000 on 2024-03-06. This keeps at least IDR 13994300 available.
+request_206,1404.7,not_affordable,not_recommended,none,,none,Paying EUR 1404.70 is not safe on 2025-08-03. At most EUR 1404.70 can be paid while keeping EUR 900 available.
+request_207,11830,affordable_now,full_payment,2026-07-05:11830,2026-07-05,none,Pay ZAR 11830 on 2026-07-05. This keeps at least ZAR 13600 available.
+request_208,4413000,affordable_now,full_payment,2024-06-07:4413000,2024-06-07,none,Pay IDR 4413000 on 2024-06-07. This keeps at least IDR 10470700 available.
+request_209,8625.1,not_affordable,not_recommended,none,,none,Paying ZAR 56914 is not safe on 2025-11-04. At most ZAR 8625.10 can be paid while keeping ZAR 18400 available.
+request_210,1360.02,not_affordable,not_recommended,none,,none,Paying USD 1360.02 is not safe on 2026-04-06. At most USD 1360.02 can be paid while keeping USD 2000 available.
+request_211,1227.89,not_affordable,not_recommended,none,,none,Paying EUR 1788.60 is not safe on 2024-09-03. At most EUR 1227.89 can be paid while keeping EUR 1500 available.
+request_212,22344000,not_affordable,not_recommended,none,,none,Paying IDR 71934000 is not safe on 2025-02-05. At most IDR 22344000 can be paid while keeping IDR 29579800 available.
+request_213,3362.4,not_affordable,not_recommended,none,,none,Paying USD 3362.40 is not safe on 2026-01-07. At most USD 3362.40 can be paid while keeping USD 2100 available.
+request_214,69750,not_affordable,not_recommended,none,,none,Paying INR 69750 is not safe on 2024-12-04. At most INR 69750 can be paid while keeping INR 174900 available.
+request_215,29986,not_affordable,not_recommended,none,,none,Paying ZAR 29986 is not safe on 2025-05-06. At most ZAR 29986 can be paid while keeping ZAR 15700 available.
+request_216,1166.8,not_affordable,not_recommended,none,,none,Paying USD 3332.40 is not safe on 2026-07-03. At most USD 1166.80 can be paid while keeping USD 1800 available.
+request_217,31601.97,not_affordable,not_recommended,none,,none,Paying ZAR 37180 is not safe on 2024-03-05. At most ZAR 31601.97 can be paid while keeping ZAR 26800 available.
+request_218,37942414.8,not_affordable,not_recommended,none,,none,Paying IDR 61142000 is not safe on 2025-08-07. At most IDR 37942414.80 can be paid while keeping IDR 34477200 available.
+request_219,1673.1,not_affordable,not_recommended,none,,none,Paying EUR 1673.10 is not safe on 2026-04-04. At most EUR 1673.10 can be paid while keeping EUR 1100 available.
+request_220,387.32,not_affordable,not_recommended,none,,none,Paying EUR 3118.50 is not safe on 2024-06-06. At most EUR 387.32 can be paid while keeping EUR 1100 available.
+request_221,109800,affordable_now,full_payment,2025-11-03:109800,2025-11-03,none,Pay INR 109800 on 2025-11-03. This keeps at least INR 81500 available.
+request_222,34078,affordable_now,full_payment,2026-01-05:34078,2026-01-05,none,Pay ZAR 34078 on 2026-01-05. This keeps at least ZAR 27300 available.
+request_223,898.7,affordable_now,full_payment,2024-09-07:898.70,2024-09-07,none,Pay EUR 898.70 on 2024-09-07. This keeps at least EUR 800 available.
+request_224,10327000,not_affordable,not_recommended,none,,none,Paying IDR 10327000 is not safe on 2025-02-04. At most IDR 10327000 can be paid while keeping IDR 22187600 available.
+request_225,18120459.6,not_affordable,not_recommended,none,,none,Paying IDR 22059000 is not safe on 2026-07-06. At most IDR 18120459.60 can be paid while keeping IDR 17670700 available.
+request_226,157000,affordable_now,full_payment,2024-12-03:157000,2024-12-03,none,Pay INR 157000 on 2024-12-03. This keeps at least INR 209400 available.
+request_227,42755,not_affordable,not_recommended,none,,none,Paying INR 259700 is not safe on 2025-05-05. At most INR 42755 can be paid while keeping INR 62900 available.
+request_228,10557350,not_affordable,not_recommended,none,,none,Paying IDR 63327000 is not safe on 2026-04-07. At most IDR 10557350 can be paid while keeping IDR 26191200 available.
+request_229,800.52,not_affordable,not_recommended,none,,none,Paying EUR 1526.80 is not safe on 2024-03-04. At most EUR 800.52 can be paid while keeping EUR 1000 available.
+request_230,3537.6,affordable_now,full_payment,2025-08-06:3537.60,2025-08-06,none,Pay EUR 3537.60 on 2025-08-06. This keeps at least EUR 2000 available.
+request_231,35706,not_affordable,not_recommended,none,,none,Paying ZAR 35706 is not safe on 2026-01-03. At most ZAR 35706 can be paid while keeping ZAR 24300 available.
+request_232,1869.4,not_affordable,not_recommended,none,,none,Paying EUR 1970.10 is not safe on 2024-06-05. At most EUR 1869.40 can be paid while keeping EUR 2400 available.
+request_233,6241000,not_affordable,not_recommended,none,,none,Paying IDR 6241000 is not safe on 2025-11-07. At most IDR 6241000 can be paid while keeping IDR 10365700 available.
+request_234,574.25,not_affordable,not_recommended,none,,none,Paying EUR 1213.30 is not safe on 2026-07-04. At most EUR 574.25 can be paid while keeping EUR 700 available.
+request_235,967.2,affordable_now,full_payment,2024-09-06:967.20,2024-09-06,none,Pay USD 967.20 on 2024-09-06. This keeps at least USD 700 available.
+request_236,14404850,not_affordable,not_recommended,none,,none,Paying IDR 52383000 is not safe on 2025-02-03. At most IDR 14404850 can be paid while keeping IDR 16768600 available.
+request_237,23826000,affordable_now,full_payment,2026-04-05:23826000,2026-04-05,none,Pay IDR 23826000 on 2026-04-05. This keeps at least IDR 22431500 available.
+request_238,663.6,not_affordable,not_recommended,none,,none,Paying USD 663.60 is not safe on 2024-12-07. At most USD 663.60 can be paid while keeping USD 700 available.
+request_239,642,affordable_now,full_payment,2025-05-04:642,2025-05-04,none,Pay USD 642 on 2025-05-04. This keeps at least USD 600 available.
+request_240,39920,not_affordable,not_recommended,none,,none,Paying INR 101200 is not safe on 2026-01-06. At most INR 39920 can be paid while keeping INR 52800 available.
+request_241,21052000,not_affordable,not_recommended,none,,none,Paying IDR 21052000 is not safe on 2024-03-03. At most IDR 21052000 can be paid while keeping IDR 19252000 available.
+request_242,437.4,not_affordable,not_recommended,none,,none,Paying EUR 1966.80 is not safe on 2025-08-05. At most EUR 437.40 can be paid while keeping EUR 600 available.
+request_243,17468,affordable_now,full_payment,2026-07-07:17468,2026-07-07,none,Pay ZAR 17468 on 2026-07-07. This keeps at least ZAR 19900 available.
+request_244,49918,affordable_now,full_payment,2024-06-04:49918,2024-06-04,none,Pay ZAR 49918 on 2024-06-04. This keeps at least ZAR 45900 available.
+request_245,65760,not_affordable,not_recommended,none,,none,Paying INR 128500 is not safe on 2025-11-06. At most INR 65760 can be paid while keeping INR 94600 available.
+request_246,64086,not_affordable,not_recommended,none,,none,Paying ZAR 64086 is not safe on 2026-04-03. At most ZAR 64086 can be paid while keeping ZAR 39300 available.
+request_247,1059.3,affordable_now,full_payment,2024-09-05:1059.30,2024-09-05,none,Pay EUR 1059.30 on 2024-09-05. This keeps at least EUR 1300 available.
+request_248,1507.36,not_affordable,not_recommended,none,,none,Paying USD 1965.60 is not safe on 2025-02-07. At most USD 1507.36 can be paid while keeping USD 1300 available.
+request_249,342.4,not_affordable,not_recommended,none,,none,Paying USD 643.20 is not safe on 2026-01-04. At most USD 342.40 can be paid while keeping USD 600 available.
+request_250,28820,not_affordable,not_recommended,none,,none,Paying ZAR 124278 is not safe on 2024-12-06. At most ZAR 28820 can be paid while keeping ZAR 35300 available.
+request_251,1513.6,not_affordable,not_recommended,none,,none,Paying EUR 1513.60 is not safe on 2025-05-03. At most EUR 1513.60 can be paid while keeping EUR 1300 available.
+request_252,10098500,not_affordable,not_recommended,none,,none,Paying IDR 28082000 is not safe on 2026-07-05. At most IDR 10098500 can be paid while keeping IDR 15152200 available.
+request_253,2335.57,not_affordable,not_recommended,none,,none,Paying EUR 2840.20 is not safe on 2024-03-07. At most EUR 2335.57 can be paid while keeping EUR 2300 available.
+request_254,1759.6,not_affordable,not_recommended,none,,none,Paying USD 3535.20 is not safe on 2025-08-04. At most USD 1759.60 can be paid while keeping USD 2500 available.
+request_255,3345000,affordable_now,full_payment,2026-04-06:3345000,2026-04-06,none,Pay IDR 3345000 on 2026-04-06. This keeps at least IDR 9813900 available.
+request_256,218700,not_affordable,not_recommended,none,,none,Paying INR 218700 is not safe on 2024-06-03. At most INR 218700 can be paid while keeping INR 168600 available.
+request_257,1085.2,not_affordable,not_recommended,none,,none,Paying USD 1352.40 is not safe on 2025-11-05. At most USD 1085.20 can be paid while keeping USD 1600 available.
+request_258,1113.6,affordable_now,full_payment,2026-01-07:1113.60,2026-01-07,none,Pay USD 1113.60 on 2026-01-07. This keeps at least USD 500 available.
+request_259,669.3,not_affordable,not_recommended,none,,none,Paying EUR 935 is not safe on 2024-09-04. At most EUR 669.30 can be paid while keeping EUR 600 available.
+request_260,15059400,not_affordable,not_recommended,none,,none,Paying IDR 52079000 is not safe on 2025-02-06. At most IDR 15059400 can be paid while keeping IDR 20727700 available.
+request_261,1830.4,affordable_now,full_payment,2026-07-03:1830.40,2026-07-03,none,Pay EUR 1830.40 on 2026-07-03. This keeps at least EUR 1500 available.
+request_262,9236000,affordable_now,full_payment,2024-12-05:9236000,2024-12-05,none,Pay IDR 9236000 on 2024-12-05. This keeps at least IDR 31018500 available.
+request_263,14718,not_affordable,not_recommended,none,,none,Paying ZAR 51546 is not safe on 2025-05-07. At most ZAR 14718 can be paid while keeping ZAR 24100 available.
+request_264,44875,not_affordable,not_recommended,none,,none,Paying INR 111300 is not safe on 2026-04-04. At most INR 44875 can be paid while keeping INR 59500 available.
+request_265,45970,affordable_now,full_payment,2024-03-06:45970,2024-03-06,none,Pay INR 45970 on 2024-03-06. This keeps at least INR 189700 available.
+request_266,935,not_affordable,not_recommended,none,,none,Paying EUR 935 is not safe on 2025-08-03. At most EUR 935 can be paid while keeping EUR 900 available.
+request_267,1925,not_affordable,not_recommended,none,,none,Paying EUR 1925 is not safe on 2026-01-05. At most EUR 1925 can be paid while keeping EUR 1500 available.
+request_268,1512.52,not_affordable,not_recommended,none,,none,Paying EUR 2426.60 is not safe on 2024-06-07. At most EUR 1512.52 can be paid while keeping EUR 1400 available.
+request_269,15490,affordable_now,full_payment,2025-11-04:15490,2025-11-04,none,Pay ZAR 15490 on 2025-11-04. This keeps at least ZAR 23100 available.
+request_270,535.4,not_affordable,not_recommended,none,,none,Paying USD 3028.80 is not safe on 2026-07-06. At most USD 535.40 can be paid while keeping USD 1400 available.
+request_271,84760,not_affordable,not_recommended,none,,none,Paying INR 91300 is not safe on 2024-09-03. At most INR 84760 can be paid while keeping INR 58200 available.
+request_272,8815924,not_affordable,not_recommended,none,,none,Paying IDR 13585000 is not safe on 2025-02-05. At most IDR 8815924 can be paid while keeping IDR 7508600 available.
+request_273,13372200,not_affordable,not_recommended,none,,none,Paying IDR 15861000 is not safe on 2026-04-07. At most IDR 13372200 can be paid while keeping IDR 18774600 available.
+request_274,2713.7,not_affordable,not_recommended,none,,none,Paying EUR 2713.70 is not safe on 2024-12-04. At most EUR 2713.70 can be paid while keeping EUR 1800 available.
+request_275,15884000,affordable_now,full_payment,2025-05-06:15884000,2025-05-06,none,Pay IDR 15884000 on 2025-05-06. This keeps at least IDR 12760100 available.
