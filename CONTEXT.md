@@ -77,7 +77,7 @@ dated after `request_date`.
 | `failed` | No (but see lifecycle: the retry child counts) | — |
 | `unrealized` / `non_cash` `investment_valuation` | **No** — not available cash | — |
 | `settled` `investment_sale` (realized) | Yes | `settlement_date` |
-| Row whose description marks it a **duplicate** | **No** — ignore, even though it is a pending debit | — |
+| Row whose description marks it a **duplicate** | **Yes, reserve it** — see D9 | `settlement_date` |
 
 Foreign-currency events convert at the rate row for **(settlement_date, from_currency, home_currency)**.
 
@@ -128,10 +128,18 @@ subscriptions, and monthly salary on the 15th.
 | `failed` debt_payment → `scheduled` debt_payment | payment retry | parent ignored; **child counts** as future debit |
 | `settled` investment_purchase → `unrealized` investment_valuation | mark-to-market | parent counts; **child never** |
 | `settled` investment_purchase → `settled` investment_sale | realized exit | both count |
-| `settled` expense → `pending` expense, described "Possible duplicate card charge" | duplicate | **ignore the child** |
+| `settled` expense → `pending` expense, described "Possible duplicate card charge" | disputed second charge | **reserve the child** (D9) |
 
-The last row is a trap: the generic rule "reserve all pending debits" is **wrong** for these 6 rows.
-A link alone does not decide cash treatment — status + direction + duplicate-marking do.
+The last row is the trap, and it bites in the opposite direction to the obvious one: the child *looks*
+ignorable but must be **reserved**. All 6 carry a dispute message stating no reversal has been posted,
+so the cash has left the account — see D9.
+
+**Implemented rule (verified, ticket 04):** the link never decides cash treatment. `status` and
+`direction` decide it *alone*, and all seven patterns above fall out of that one rule — including the
+duplicate row, which is just an ordinary pending debit once D9 is applied. `code/engine/cash.py`
+therefore performs no parent lookup and no graph walk;
+`code/engine/tests/test_lifecycle_real_data.py` asserts all 58 linked rows against the table so the
+equivalence fails loudly if it ever stops holding.
 
 **Conflict precedence** (from the spec, adopted verbatim): explicit cancellation/settlement/amendment
 → newer record from the same source → settled over estimate/forecast → financially safer reading.
@@ -359,7 +367,7 @@ Full records to be written as ADRs under `docs/adr/` during `/to-spec`; summaris
 | D6 | Ranking | Lexicographic comparison on a 6-tuple | A weighted score can trade away a deadline; the spec forbids that |
 | D7 | `reduce_to` target | Always `minimum_allowed_amount` | Matches every sample exactly |
 | D8 | Change-set selection | Smallest sufficient set: fewest changes → smallest total saving that still passes → lowest `event_id` | `request_21` chose reduce-over-stop when stop would have over-saved |
-| D9 | ~~Ignore rows marked as possible duplicates~~ **REVERSED — reserve them** | **Reserve** all 6 "Possible duplicate card charge" pending debits | Verification reversal: **all 6 have a dispute message stating "a reversal has not been posted to the account yet; the dispute is open"** (`message_106/121/157/164/183/197`). The money is still out. The spec's "ignore duplicate records" means **duplicate representations of one event** (README:112 "de-duplicate repeated representations of the same event") — not a genuine second charge under open dispute. Conflict precedence rule 4 ("the financially safer interpretation") independently requires reserving. **The true de-duplication case is `internal_transfer`** (6 messages), where a matching debit+credit between the user's own accounts must net to zero. |
+| D9 | ~~Ignore rows marked as possible duplicates~~ **REVERSED — reserve them** | **Reserve** all 6 "Possible duplicate card charge" pending debits | Verification reversal: **all 6 have a dispute message stating "a reversal has not been posted to the account yet; the dispute is open"** (`message_106/121/157/164/183/197`). The money is still out. The spec's "ignore duplicate records" means **duplicate representations of one event** (README:112 "de-duplicate repeated representations of the same event") — not a genuine second charge under open dispute. Conflict precedence rule 4 ("the financially safer interpretation") independently requires reserving. **The true de-duplication case is `internal_transfer`** (6 messages), where a matching debit+credit between the user's own accounts must net to zero. **Amended by ticket 04:** those 6 messages have *no event rows behind them* — all 6 carry a blank `related_event_id`, and a full scan finds no equal-magnitude debit/credit pair for 5 of the 6 users in any currency, on any date, in any status (the 6th, `user_261`, has only the ordinary settled card-reversal pair). There is no `transfer` event type in the schema at all; credits are only `income`/`refund`/`investment_sale`. So the netting requirement is satisfied with **no code**: nothing exists to net, any equal-and-opposite settled pair is already inside the opening balance, and fabricating the missing legs would be inventing financial facts. Pinned by `test_no_internal_transfer_pair_exists_as_event_rows`. |
 | D10 | Dependencies | **Zero runtime dependencies — stdlib only.** Model calls go out over stdlib `urllib.request` to Groq's OpenAI-compatible REST endpoint. | Updated after the provider finding: the `anthropic` SDK is moot without an Anthropic key, and a REST call over `urllib` removes the last third-party package. A grader then needs nothing but Python. `pandas` stays rejected (dtype coercion threatens determinism); `rapidfuzz` stays rejected (stdlib `difflib` suffices). |
 | D11 | Explanations | Deterministic templates **rendered from reason codes** | Consistency is graded; stops injected text reaching a graded column; reason codes make it grounded rather than generic |
 
@@ -677,7 +685,8 @@ Read before touching the implementation:
 - [ ] All money arithmetic uses `Decimal` with `ROUND_HALF_UP`. No floats in the ledger.
 - [ ] Same-day ordering is debits before credits, then `event_id`. Assert it.
 - [ ] Never treat a blank `amount` as zero — resolve it from the linked image or fail loudly.
-- [ ] Never count pending credits, unrealized valuations, cancelled/failed rows, or duplicate-marked rows.
+- [ ] Never count pending credits, unrealized valuations, or cancelled/failed rows. Duplicate-marked
+      rows **are reserved** — they are ordinary pending debits under open dispute (D9).
 - [ ] `amount_safe_to_pay` and `earliest_date_for_full_payment` are computed **without** spending changes.
 - [ ] Installment plans must match a supplied option exactly; prune ineligible options before ranking.
 - [ ] Ranking is lexicographic on the 6-tuple. Never a weighted score.

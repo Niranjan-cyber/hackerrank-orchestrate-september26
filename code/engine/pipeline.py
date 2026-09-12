@@ -25,6 +25,7 @@ replace the body of `_decide` without touching anything around it.
 
 from __future__ import annotations
 
+from .cash import cash_position
 from .money import ZERO, clamp, format_plan_amount
 from .types import Config, Dataset, Fact, OutputRow, Reason
 
@@ -54,23 +55,55 @@ def _decide(request, dataset: Dataset, facts: tuple[Fact, ...], config: Config) 
     profile = dataset.profiles[request.user_id]
     reasons: list[Reason] = []
 
+    # Ticket 04: the real cash position - every event row classified, foreign amounts
+    # converted at their dated rate, lifecycle resolved. Ticket 05 layers inferred
+    # recurring streams on top of this, and ticket 06 simulates it forward.
+    position = cash_position(
+        request,
+        profile,
+        dataset.events_by_user.get(request.user_id, ()),
+        dataset.rates,
+    )
+
     # --- TICKET 01 placeholder rule: today's headroom, nothing projected ----------
-    headroom = profile.current_available_balance - profile.minimum_balance_to_keep
+    # Still deliberately naive. The reserved debits below are *known* and already
+    # classified, but spending them against `amount_safe_to_pay` needs the horizon
+    # and the same-day ordering rule, which belong to ticket 06.
+    headroom = position.opening_balance - position.minimum_balance
     safe = clamp(headroom, ZERO, request.requested_amount)
 
     reasons.append(
         Reason(
             code="OPENING_BALANCE",
-            amount=profile.current_available_balance,
+            amount=position.opening_balance,
             detail="balance as of request_date",
         )
     )
     reasons.append(
         Reason(
             code="MINIMUM_BALANCE_FLOOR",
-            amount=profile.minimum_balance_to_keep,
+            amount=position.minimum_balance,
         )
     )
+    for effect in position.reserved_debits:
+        reasons.append(
+            Reason(
+                code=effect.reason_code,
+                event_id=effect.event_id,
+                amount=effect.amount_home,
+                detail=f"due {effect.cash_date.isoformat()}",
+            )
+        )
+    for effect in position.unknown_amounts:
+        # A future outflow of unknown size. Recorded rather than assumed to be zero;
+        # ticket 12 resolves these four rows from their linked receipt images.
+        reasons.append(
+            Reason(
+                code=effect.reason_code,
+                event_id=effect.event_id,
+                detail=f"amount unresolved, due {effect.cash_date.isoformat()}",
+            )
+        )
     reasons.append(
         Reason(code="NAIVE_HEADROOM_ONLY", detail="ticket 01: no 90-day projection yet")
     )

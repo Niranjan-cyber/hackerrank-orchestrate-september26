@@ -11,7 +11,7 @@ Companion to `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, `do
 |---|---|---|
 | Python **3.13.9** available as **`python`** (anaconda) | `python --version` | Use `python` locally. |
 | **`python3` is a broken WindowsApps stub** | `python3 --version` → "Python was not found" | Never script against `python3` locally. The README must still document `python3 code/main.py` for Linux graders. |
-| **`pytest` is NOT installed** (`iniconfig` missing) | `python -c "import pytest"` | Test with stdlib **`unittest`**. Keeps the zero-dependency promise and works for graders. |
+| ~~**`pytest` is NOT installed**~~ — `iniconfig` was installed during ticket 04, so `pytest` 8.4.2 now imports here | `python -c "import pytest"` | **Guidance unchanged: test with stdlib `unittest`** (D24). The decision never rested only on availability — stdlib keeps the zero-dependency promise for a grader who has nothing but Python. Do not reintroduce `pytest` because it happens to import. |
 | **IPython / jupyter_client absent** | `python -c "import IPython"` | The IDE MCP's `executeCode` tool is **non-functional** here. Do not plan around it. |
 | **Pillow 12.2.0 installed** | `python -c "import PIL"` | Usable for local image inspection, but must **not** become a submission dependency. |
 | Node 24.11.1, npm 11.6.2, uv 0.12.10 present | `--version` | Available but unnecessary; the solution is Python. |
