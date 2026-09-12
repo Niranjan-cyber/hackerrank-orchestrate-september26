@@ -1,0 +1,24 @@
+{
+  "fact_type": "salary_first",
+  "subject": "message_01",
+  "user_id": "user_02",
+  "request_id": null,
+  "related_event_id": null,
+  "amount": "9999.99",
+  "currency": "IDR",
+  "percent_change": null,
+  "effective_date": "2025-08-15",
+  "applies_to_cycles": null,
+  "verbatim_quote": "Gaji bulanan Anda naik menjadi IDR 42750000.",
+  "source_type": "employer",
+  "source_language": "id",
+  "confidence": "high",
+  "extractor": {
+    "provider": "fixture",
+    "model": "hand_authored",
+    "contract_version": "1.0.0",
+    "extracted_at": "2026-09-12T21:40:00Z",
+    "fixture_key": "22c8f6dbdd59bf28",
+    "hand_authored_reason": "Adversarial V5 test: amount digits do not appear in the verbatim quote."
+  }
+}

@@ -142,10 +142,14 @@ def load_rates(path: Path) -> dict[tuple[str, str, str], object]:
     return rates
 
 
-def load_dataset(dataset_dir: Path) -> Dataset:
+def load_dataset(
+    dataset_dir: Path,
+    requests_path: Path | None = None,
+) -> Dataset:
     """Read every participant-facing CSV and return one immutable value."""
+    requests_file = requests_path if requests_path else dataset_dir / "requests.csv"
     return Dataset(
-        requests=load_requests(dataset_dir / "requests.csv"),
+        requests=load_requests(requests_file),
         profiles=load_profiles(dataset_dir / "financial_profiles.csv"),
         events_by_user=load_events(dataset_dir / "financial_events.csv"),
         options_by_request=load_payment_options(

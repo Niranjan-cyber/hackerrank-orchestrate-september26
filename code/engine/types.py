@@ -132,9 +132,11 @@ class Fact:
     effective_date: date | None = None
     applies_to_cycles: int | None = None
     verbatim_quote: str = ""
+    verbatim_amount_string: str | None = None
     source_type: str = ""
     source_language: str = "en"
     confidence: str = "high"
+    extractor: dict = field(default_factory=dict)
 
 
 # --- provenance -------------------------------------------------------------------

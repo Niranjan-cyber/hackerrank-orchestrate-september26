@@ -1,0 +1,24 @@
+{
+  "fact_type": "windfall_solicitation",
+  "subject": "message_67",
+  "user_id": "user_88",
+  "request_id": null,
+  "related_event_id": null,
+  "amount": null,
+  "currency": null,
+  "percent_change": null,
+  "effective_date": null,
+  "applies_to_cycles": null,
+  "verbatim_quote": "Congratulations! You’ve been selected for a cash prize.",
+  "source_type": "financial_service",
+  "source_language": "en",
+  "confidence": "high",
+  "extractor": {
+    "provider": "fixture",
+    "model": "hand_authored",
+    "contract_version": "1.0.0",
+    "extracted_at": "2026-09-12T21:40:00Z",
+    "fixture_key": "44e752120993122f",
+    "hand_authored_reason": "Adversarial advance-fee scam; must be ignored by the engine."
+  }
+}

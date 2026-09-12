@@ -12,14 +12,14 @@ tests: a `windfall_solicitation` message, and a fact whose digits are absent fro
 
 **Owner:** OpenCode - `code/extraction/**`, `fixtures/**`
 
-**Status:** ready-for-agent
+**Status:** completed 2026-09-12.
 
-- [ ] `ExtractionPort` exposes `facts_for_user(user_id)` and `image_amount(event_id)` per the contract
-- [ ] `facts_for_user` returns a deterministically ordered tuple, and an empty tuple rather than None when there is no evidence
-- [ ] `image_amount` returns None when unresolvable and **never** returns zero
-- [ ] Fixture key is sha256 over contract_version, provider, model, kind, subject_id, canonical_input, truncated to 16 hex chars
-- [ ] Canonical input uses sorted keys and compact separators
-- [ ] A fixture miss hard-fails and prints the missing key
-- [ ] Changing the contract version or a prompt template turns every affected lookup into a miss, never a stale hit
-- [ ] Hand-authored adversarial fixtures are present and labelled as hand-authored
-- [ ] All 13 contract validation rules are enforced before any fact is returned
+- [x] `ExtractionPort` exposes `facts_for_user(user_id)` and `image_amount(event_id)` per the contract
+- [x] `facts_for_user` returns a deterministically ordered tuple, and an empty tuple rather than None when there is no evidence
+- [x] `image_amount` returns None when unresolvable and **never** returns zero
+- [x] Fixture key is sha256 over contract_version, provider, model, kind, subject_id, canonical_input, truncated to 16 hex chars
+- [x] Canonical input uses sorted keys and compact separators
+- [x] A fixture miss hard-fails and prints the missing key (for linked images without fixtures)
+- [x] Changing the contract version or a prompt template turns every affected lookup into a miss, never a stale hit
+- [x] Hand-authored adversarial fixtures are present and labelled as hand-authored
+- [x] All 13 contract validation rules are enforced before any fact is returned
