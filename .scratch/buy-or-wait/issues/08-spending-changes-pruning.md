@@ -26,3 +26,28 @@ variants must be explored, and they win at level 1. Naive pruning loses all thre
 - [ ] Selection picks the smallest sufficient set: fewest changes, then smallest total saving that still passes, then lowest event id
 - [ ] At most three changes; stop and reduce never target the same event; stop entries precede reduce_to entries
 - [ ] Sample 21 reproduces the case where reducing is chosen over stopping for an event eligible for both
+
+---
+
+## Carried in from Ticket 07 - a checkable prediction
+
+Ticket 07 emits a late `wait` rather than `not_recommended` when `earliest` falls after the deadline
+(CONTEXT.md D12): the candidate carries `completes_by_deadline = False` and loses at level 1 to
+anything that completes, which is exactly what this ticket's change-variants are. On the 250
+evaluation requests that produces **4 rows whose recommended plan finishes after the deadline**:
+
+| request | method | plan finishes | deadline | miss |
+|---|---|---|---|---|
+| `request_78`  | `wait` | 2025-10-15 | 2025-10-14 | 1 day |
+| `request_117` | `wait` | 2026-07-15 | 2026-07-14 | 1 day |
+| `request_120` | `wait` | 2026-04-15 | 2026-04-14 | 1 day |
+| `request_121` | `wait` | 2024-04-15 | 2024-03-14 | 32 days |
+
+Three of the four miss by a single day, which is the samples `06`/`11`/`21` signature exactly
+(`earliest` one day past the deadline, ground truth a spending-change plan that completes on time).
+**Prediction: this ticket should convert most of these 4 rows to a deadline-meeting change plan.** If
+one of them does not convert, that is worth understanding before shipping - either no permitted
+change closes the gap, in which case a late `wait` is the honest answer, or the change-set search is
+missing something. Re-run the check with:
+
+    python code/main.py --output "%TEMP%/ow.csv"   # then compare each plan's last date to its deadline

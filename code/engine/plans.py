@@ -166,6 +166,120 @@ def installment_schedule(option: PaymentOption) -> tuple[tuple[date, Decimal], .
     )
 
 
+@dataclass(frozen=True, slots=True)
+class ScreenedOption:
+    """A supplied option that passed every gate except the ledger's floor test."""
+
+    option: PaymentOption
+    schedule: tuple[tuple[date, Decimal], ...]
+    completes_by_deadline: bool
+
+    @property
+    def final_payment_date(self) -> date:
+        return self.schedule[-1][0]
+
+
+def screen_options(
+    request: Request,
+    profile: Profile,
+    options: Sequence[PaymentOption],
+    config: Config,
+) -> tuple[tuple[ScreenedOption, ...], tuple[Reason, ...]]:
+    """Apply every non-ledger eligibility gate to the supplied installment options.
+
+    One function so that the two callers cannot drift: `candidate_plans` certifies
+    what comes back, and `required_horizon_end` sizes the projection window around it.
+    A gate that lived in only one of them would either drop a candidate the window was
+    sized for or size the window for a candidate that is never built.
+
+    Returns the survivors in `payment_option_id` order, plus one `Reason` per prune.
+    """
+    reasons: list[Reason] = []
+
+    def note(code: str, detail: str = "") -> None:
+        reasons.append(Reason(code=code, detail=detail))
+
+    installment_options = tuple(
+        option for option in options if option.payment_method == "installments"
+    )
+    if not installment_options:
+        return (), ()
+    if "installments" not in profile.payment_methods_considered:
+        note("INSTALLMENTS_NOT_AN_ACCEPTED_METHOD")
+        return (), tuple(reasons)
+    maximum = profile.max_installment_months
+    if maximum is None:
+        # A blank `max_installment_months` means the user will not consider
+        # installments at all (AGENTS.md section 6.1). Across all 275 profiles this is
+        # blank exactly when `installments` is absent from the accepted methods, so the
+        # two checks agree; both are kept because either column could change.
+        note("INSTALLMENTS_NOT_CONSIDERED")
+        return (), tuple(reasons)
+
+    screened: list[ScreenedOption] = []
+    for option in sorted(
+        installment_options, key=lambda o: option_sort_key(o.payment_option_id)
+    ):
+        if option.number_of_payments < 1:
+            # A malformed supplied row. `loaders` parses the count with a bare `int`,
+            # so a literal 0 loads cleanly and would reach `schedule[-1]` on an empty
+            # tuple. Prune it the way `option_sort_key` handles a malformed id: one
+            # bad row must not take down the batch.
+            note("OPTION_HAS_NO_PAYMENTS", option.payment_option_id)
+            continue
+        if option.number_of_payments > maximum:
+            note(
+                "OPTION_EXCEEDS_MAX_INSTALLMENTS",
+                f"{option.payment_option_id} needs {option.number_of_payments} "
+                f"payments, the user will consider {maximum}",
+            )
+            continue
+        if option.number_of_payments > 1 and not option.payment_frequency_days:
+            # Without a frequency the dates cannot be reconstructed, and guessing one
+            # would invent a schedule the seller never offered.
+            note("OPTION_SCHEDULE_UNRESOLVED", option.payment_option_id)
+            continue
+
+        schedule = installment_schedule(option)
+        final = schedule[-1][0]
+        completes = final <= request.desired_completion_date
+        if not completes and config.installments_must_complete_by_deadline:
+            note(
+                "OPTION_COMPLETES_AFTER_DEADLINE",
+                f"{option.payment_option_id} ends {final.isoformat()}",
+            )
+            continue
+        screened.append(
+            ScreenedOption(
+                option=option, schedule=schedule, completes_by_deadline=completes
+            )
+        )
+
+    return tuple(screened), tuple(reasons)
+
+
+def required_horizon_end(
+    request: Request,
+    profile: Profile,
+    options: Sequence[PaymentOption],
+    config: Config,
+) -> date | None:
+    """The last date any certifiable installment plan reaches, or None if there is none.
+
+    The caller builds the cash position with at least this horizon, so that ticket 05
+    has projected recurring spend across every day a candidate touches. Without it
+    `simulate` raises `ProjectionHorizonError` and the candidate is silently pruned
+    before `Config.installments_must_complete_by_deadline` is ever consulted - which
+    would make that knob inert in the one direction it exists for. Under the shipped
+    default this returns a date on or before the deadline, so it never extends the
+    window: the longest `desired_completion_date` in the dataset is 86 days out.
+    """
+    screened, _ = screen_options(request, profile, options, config)
+    if not screened:
+        return None
+    return max(entry.final_payment_date for entry in screened)
+
+
 # --- generation --------------------------------------------------------------------
 
 
@@ -283,30 +397,22 @@ class _CandidateBuilder:
         """Take one of the seller's supplied schedules, unchanged.
 
         An installment plan may never be invented: it must reproduce a supplied option
-        exactly, which is why the schedule comes from `installment_schedule` and the
-        amount from the option rather than from any calculation of ours.
+        exactly, which is why the schedule comes from `screen_options` and the amount
+        from the option rather than from any calculation of ours. `accepted` is read
+        inside the screen, from the same `Profile`.
         """
-        installment_options = tuple(
-            option for option in options if option.payment_method == "installments"
+        screened, reasons = screen_options(
+            self._request, self._profile, options, self._config
         )
-        if not installment_options:
-            return
-        if "installments" not in accepted:
-            self._note("INSTALLMENTS_NOT_AN_ACCEPTED_METHOD")
-            return
-        maximum = self._profile.max_installment_months
-        if maximum is None:
-            # A blank `max_installment_months` means the user will not consider
-            # installments at all (AGENTS.md section 6.1). Across all 275 profiles this
-            # is blank exactly when `installments` is absent from the accepted methods,
-            # so the two checks agree; both are kept because either column could change.
-            self._note("INSTALLMENTS_NOT_CONSIDERED")
-            return
-
-        for option in sorted(
-            installment_options, key=lambda o: option_sort_key(o.payment_option_id)
-        ):
-            self._add_one_option(option, maximum)
+        self._reasons.extend(reasons)
+        for entry in screened:
+            self._certify(
+                method="installments",
+                payments=entry.schedule,
+                total_paid=entry.option.total_payable_amount,
+                completes_by_deadline=entry.completes_by_deadline,
+                payment_option_id=entry.option.payment_option_id,
+            )
 
     def add_wait(self, accepted: frozenset[str], earliest: date | None) -> None:
         """Pay the whole amount on the first date it is safe.
@@ -333,43 +439,6 @@ class _CandidateBuilder:
             payments=((earliest, request.requested_amount),),
             total_paid=request.requested_amount,
             completes_by_deadline=completes,
-        )
-
-    # --- one installment option ----------------------------------------------------
-
-    def _add_one_option(self, option: PaymentOption, maximum: int) -> None:
-        request = self._request
-        if option.number_of_payments > maximum:
-            self._note(
-                "OPTION_EXCEEDS_MAX_INSTALLMENTS",
-                detail=(
-                    f"{option.payment_option_id} needs {option.number_of_payments} "
-                    f"payments, the user will consider {maximum}"
-                ),
-            )
-            return
-        if option.number_of_payments > 1 and not option.payment_frequency_days:
-            # Without a frequency the dates cannot be reconstructed, and guessing one
-            # would invent a schedule the seller never offered.
-            self._note("OPTION_SCHEDULE_UNRESOLVED", detail=option.payment_option_id)
-            return
-
-        schedule = installment_schedule(option)
-        final = schedule[-1][0]
-        completes = final <= request.desired_completion_date
-        if not completes and self._config.installments_must_complete_by_deadline:
-            self._note(
-                "OPTION_COMPLETES_AFTER_DEADLINE",
-                detail=f"{option.payment_option_id} ends {final.isoformat()}",
-            )
-            return
-
-        self._certify(
-            method="installments",
-            payments=schedule,
-            total_paid=option.total_payable_amount,
-            completes_by_deadline=completes,
-            payment_option_id=option.payment_option_id,
         )
 
     # --- certification -------------------------------------------------------------

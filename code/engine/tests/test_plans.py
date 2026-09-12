@@ -11,14 +11,20 @@ The eligibility table is CONTEXT.md section 8, itself derived from
 from __future__ import annotations
 
 import unittest
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 
 from engine.cash import cash_position
-from engine.plans import candidate_plans, installment_schedule
+from engine.pipeline import run_pipeline
+from engine.plans import (
+    candidate_plans,
+    installment_schedule,
+    required_horizon_end,
+)
 from engine.recurrence import with_projections
 from engine.simulate import amount_safe_to_pay, earliest_date_for_full_payment, simulate
-from engine.types import Config
+from engine.types import Config, Dataset
 
 from .support import make_event, make_payment_option, make_profile, make_request
 
@@ -459,6 +465,151 @@ class EveryPlanIsCertifiedTest(unittest.TestCase):
                 ledger.holds_floor,
                 f"{plan.method} was generated but breaches the floor",
             )
+
+
+class RequiredHorizonTest(unittest.TestCase):
+    """The projection horizon must cover the longest candidate, or the knob is inert.
+
+    `simulate` refuses to certify a plan that runs past the window ticket 05 projected
+    recurring spend across. Ticket 05 projects to `request_date + horizon_days` by
+    default, so without this every long option is dropped as
+    `PLAN_BEYOND_PROJECTION_HORIZON` before `installments_must_complete_by_deadline`
+    is ever consulted - and the ticket-14 sweep of that knob would measure nothing.
+    Of the 434 supplied options that finish after their deadline, 428 also finish
+    after day 90.
+    """
+
+    def setUp(self):
+        self.request = make_request(
+            request_date="2025-02-01",
+            requested_amount="3000",
+            desired_completion_date="2025-03-01",
+        )
+        self.profile = make_profile(
+            **RICH,
+            payment_methods_considered=("installments",),
+            max_installment_months=6,
+        )
+        # 4 payments, 40 days apart: the last lands 2025-06-15, past both the deadline
+        # and the 2025-05-02 default horizon.
+        self.long_option = make_payment_option(
+            "payment_option_11",
+            payment_amount="800",
+            number_of_payments=4,
+            first_payment_date="2025-02-15",
+            payment_frequency_days=40,
+        )
+        self.late_config = replace(
+            Config(), installments_must_complete_by_deadline=False
+        )
+
+    def test_it_reports_the_latest_final_payment_across_screened_options(self):
+        self.assertEqual(
+            required_horizon_end(
+                self.request, self.profile, (self.long_option,), self.late_config
+            ),
+            date(2025, 6, 15),
+        )
+
+    def test_an_option_the_gates_already_reject_does_not_extend_the_horizon(self):
+        """Only a candidate that could actually be built is worth projecting for."""
+        self.assertIsNone(
+            required_horizon_end(
+                self.request, self.profile, (self.long_option,), Config()
+            )
+        )
+        self.assertIsNone(
+            required_horizon_end(self.request, self.profile, (), self.late_config)
+        )
+
+    def test_without_the_extended_horizon_the_option_is_dropped_not_ranked(self):
+        result = candidates(
+            self.request,
+            self.profile,
+            options=(self.long_option,),
+            config=self.late_config,
+        )
+        self.assertEqual(result.plans, ())
+        self.assertIn(
+            "PLAN_BEYOND_PROJECTION_HORIZON", {r.code for r in result.reasons}
+        )
+
+    def test_with_the_extended_horizon_the_late_option_reaches_the_ranking(self):
+        config = self.late_config
+        events = ()
+        position = cash_position(self.request, self.profile, events, {})
+        position = with_projections(
+            position,
+            events,
+            self.request,
+            self.profile,
+            config,
+            {},
+            horizon_end=required_horizon_end(
+                self.request, self.profile, (self.long_option,), config
+            ),
+        )
+        result = candidate_plans(
+            self.request,
+            self.profile,
+            (self.long_option,),
+            position,
+            config,
+            safe=amount_safe_to_pay(position, config, self.request.requested_amount),
+            earliest=earliest_date_for_full_payment(
+                position, config, self.request.requested_amount
+            ),
+        )
+        plan = plan_for(result, "installments")
+        self.assertIsNotNone(plan)
+        # It reaches the ranking and loses at level 1, which is the point of the knob.
+        self.assertFalse(plan.completes_by_deadline)
+
+    def test_the_pipeline_extends_the_horizon_for_the_options_it_will_certify(self):
+        """End to end: the knob has to be live in `run_pipeline`, not just in `plans`."""
+        dataset = Dataset(
+            requests=(self.request,),
+            profiles={self.profile.user_id: self.profile},
+            events_by_user={self.profile.user_id: ()},
+            options_by_request={self.request.request_id: (self.long_option,)},
+            rates={},
+        )
+        row = run_pipeline(dataset, (), self.late_config)[0]
+        self.assertEqual(row.recommended_payment_method, "installments")
+        self.assertEqual(row.payment_plan[-1][0], date(2025, 6, 15))
+
+        # ... and stays off under the shipped default.
+        default_row = run_pipeline(dataset, (), Config())[0]
+        self.assertEqual(default_row.recommended_payment_method, "not_recommended")
+
+
+class MalformedOptionTest(unittest.TestCase):
+    """A bad row in a supplied CSV must not take the whole batch down.
+
+    `option_sort_key` is already defensive about an unparseable id; a non-positive
+    `number_of_payments` deserves the same treatment. `loaders.load_payment_options`
+    does a bare `int(...)`, so a literal `0` loads cleanly and would then reach
+    `schedule[-1]` on an empty tuple.
+    """
+
+    def test_a_non_positive_payment_count_is_pruned_rather_than_raising(self):
+        request = make_request(requested_amount="3000")
+        profile = make_profile(
+            **RICH,
+            payment_methods_considered=("installments",),
+            max_installment_months=6,
+        )
+        broken = make_payment_option(
+            "payment_option_12",
+            payment_amount="1000",
+            number_of_payments=0,
+            first_payment_date="2025-02-05",
+            payment_frequency_days=30,
+            total_payable_amount="0",
+        )
+        result = candidates(request, profile, options=(broken,))
+        self.assertNotIn("installments", methods(result))
+        self.assertIn("OPTION_HAS_NO_PAYMENTS", {r.code for r in result.reasons})
 
 
 if __name__ == "__main__":

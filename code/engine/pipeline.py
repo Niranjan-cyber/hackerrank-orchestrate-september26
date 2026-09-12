@@ -29,8 +29,8 @@ from __future__ import annotations
 
 from .cash import UnresolvedAmountError, cash_position
 from .money import ZERO, format_plan_amount
-from .plans import best_plan, candidate_plans
-from .recurrence import with_projections
+from .plans import best_plan, candidate_plans, required_horizon_end
+from .recurrence import default_horizon_end, with_projections
 from .simulate import amount_safe_to_pay, earliest_date_for_full_payment
 from .types import Config, Dataset, Fact, OutputRow, Reason
 
@@ -75,6 +75,19 @@ def _decide(
     # Ticket 05: layer inferred recurring streams onto the cash position. Ticket 06's
     # simulator is the consumer; keeping the two steps separate means a projection bug
     # cannot hide inside the simulator.
+    #
+    # The window is stretched to cover the longest installment schedule ticket 07 could
+    # certify. `simulate` refuses to certify a plan that reaches past the projected
+    # window - rightly, since it would be testing the floor across days whose recurring
+    # spend was never forecast - so without this a long option is dropped as
+    # PLAN_BEYOND_PROJECTION_HORIZON before its eligibility is ever considered. Under
+    # the shipped config this changes nothing: an eligible option finishes on or before
+    # `desired_completion_date`, and the furthest deadline in the dataset is 86 days out.
+    options = dataset.options_by_request.get(request.request_id, ())
+    horizon = default_horizon_end(request, config)
+    needed = required_horizon_end(request, profile, options, config)
+    if needed is not None and needed > horizon:
+        horizon = needed
     position = with_projections(
         position,
         dataset.events_by_user.get(request.user_id, ()),
@@ -82,6 +95,7 @@ def _decide(
         profile,
         config,
         dataset.rates,
+        horizon_end=horizon,
     )
 
     # --- Ticket 06: simulate the fixed 90-day window ------------------------------
@@ -181,7 +195,7 @@ def _decide(
     candidates = candidate_plans(
         request,
         profile,
-        dataset.options_by_request.get(request.request_id, ()),
+        options,
         position,
         config,
         safe=safe,
