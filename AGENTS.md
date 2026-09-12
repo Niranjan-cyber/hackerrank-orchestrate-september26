@@ -255,3 +255,31 @@ Before responding to any user message, confirm:
 - [ ] I have verified that `tool=` exactly matches the harness or coding agent currently running.
 - [ ] I will not log secrets.
 - [ ] I will preserve the Buy or Wait? financial decision and output contract in §6.
+
+---
+
+## 9. Agent Skills
+
+This section lives here, not in `CLAUDE.md`, so every AGENTS.md-aware tool reads it. `CLAUDE.md` imports this file.
+
+### Issue tracker
+
+Issues and specs live as GitHub issues on `origin` (`Niranjan-cyber/hackerrank-orchestrate-september26`), driven by the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles, used verbatim: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` and `docs/adr/` at the repo root, both created lazily. See `docs/agents/domain.md`.
+
+### Where the skills themselves live
+
+Matt Pocock's engineering skills are installed per-user, outside this repo, so they are available to every project and are not part of the submission package:
+
+- Claude Code reads them from the `mattpocock-skills` plugin (`/plugin`).
+- opencode and other `.agents`-aware tools read them from the user-level `.agents/skills/` directory in the operator's home directory.
+- Re-sync after a plugin update by running `sync-mattpocock-skills.sh`, which sits next to that directory.
+
+Do not vendor these skills into this repo; nothing in §6 depends on them.
