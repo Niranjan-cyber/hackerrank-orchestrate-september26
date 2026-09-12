@@ -26,11 +26,9 @@ Still to come, and deliberately absent here:
 
 from __future__ import annotations
 
-from dataclasses import replace
-
 from .cash import UnresolvedAmountError, cash_position
 from .money import ZERO, format_plan_amount
-from .recurrence import projected_effects
+from .recurrence import with_projections
 from .simulate import amount_safe_to_pay, earliest_date_for_full_payment
 from .types import Config, Dataset, Fact, OutputRow, Reason
 
@@ -75,7 +73,7 @@ def _decide(
     # Ticket 05: layer inferred recurring streams onto the cash position. Ticket 06's
     # simulator is the consumer; keeping the two steps separate means a projection bug
     # cannot hide inside the simulator.
-    projected = projected_effects(
+    position = with_projections(
         position,
         dataset.events_by_user.get(request.user_id, ()),
         request,
@@ -83,16 +81,6 @@ def _decide(
         config,
         dataset.rates,
     )
-    if projected:
-        position = replace(
-            position,
-            effects=tuple(
-                sorted(
-                    position.effects + projected,
-                    key=lambda e: (e.cash_date, e.event_id),
-                )
-            ),
-        )
 
     # --- Ticket 06: simulate the fixed 90-day window ------------------------------
     reasons.append(
@@ -236,7 +224,11 @@ def _decide(
         affordability_status="not_affordable",
         recommended_payment_method="not_recommended",
         payment_plan=(),
-        earliest_date_for_full_payment=None,
+        # `earliest` is a capacity figure, not a plan field: it is reported whenever
+        # the full amount becomes safe within the window, independent of whether any
+        # eligible plan was found. The problem statement blanks it only when the full
+        # amount is never safe in the forecast period.
+        earliest_date_for_full_payment=earliest,
         spending_changes_needed=(),
         decision_explanation=_explain_not_recommended(request, profile, safe),
         reasons=tuple(reasons),

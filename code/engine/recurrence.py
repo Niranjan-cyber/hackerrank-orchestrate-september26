@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 import statistics
 from calendar import monthrange
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from decimal import Decimal
 from difflib import SequenceMatcher
@@ -32,11 +32,16 @@ from .cash import (
     CashPosition,
     convert,
 )
-from .money import ZERO
+from .money import ZERO, money_scale
 from .types import Config, Event, Profile, Request
 
 
 # --- public API -------------------------------------------------------------------
+
+
+def default_horizon_end(request: Request, config: Config) -> date:
+    """The base forecast horizon: `request_date` plus the configured window, inclusive."""
+    return request.request_date + timedelta(days=config.horizon_days)
 
 
 def projected_effects(
@@ -46,23 +51,61 @@ def projected_effects(
     profile: Profile,
     config: Config,
     rates: Mapping[tuple[str, str, str], Decimal] | None = None,
+    *,
+    horizon_end: date | None = None,
 ) -> tuple[CashEffect, ...]:
-    """Return inferred recurring effects for the 90-day forecast window.
+    """Return inferred recurring effects for the forecast window.
 
     `position` supplies the explicit open rows used for duplicate-date suppression.
     `events` supplies the original rows used to detect history. `rates` is required
-    only when a stream contains a foreign-currency event.
+    only when a stream contains a foreign-currency event. `horizon_end` overrides the
+    default `request_date + config.horizon_days`, so a caller evaluating a plan that
+    reaches past the base window can project recurring spend across the whole plan.
     """
     rates = rates or {}
     streams = _detect_streams(position, events, request, profile, config, rates)
     explicit = _explicit_suppression_set(position, events)
     projected: list[CashEffect] = []
-    horizon_end = request.request_date + timedelta(days=config.horizon_days)
+    horizon_end = horizon_end or default_horizon_end(request, config)
     for stream in streams:
         projected.extend(
             _project_stream(stream, request.request_date, horizon_end, explicit, config)
         )
     return tuple(sorted(projected, key=lambda e: (e.cash_date, e.event_id)))
+
+
+def with_projections(
+    position: CashPosition,
+    events: tuple[Event, ...],
+    request: Request,
+    profile: Profile,
+    config: Config,
+    rates: Mapping[tuple[str, str, str], Decimal] | None = None,
+    *,
+    horizon_end: date | None = None,
+) -> CashPosition:
+    """Return a position with inferred streams merged in and its horizon recorded.
+
+    This is the one place the engine layers Ticket 05 projections onto Ticket 04's
+    explicit cash position. It stamps `projected_until` so `simulate` can tell how far
+    the inferred coverage reaches; a caller that needs a longer window passes a larger
+    `horizon_end` here rather than extending the simulator past its data.
+    """
+    horizon_end = horizon_end or default_horizon_end(request, config)
+    projected = projected_effects(
+        position, events, request, profile, config, rates, horizon_end=horizon_end
+    )
+    if projected:
+        position = replace(
+            position,
+            effects=tuple(
+                sorted(
+                    position.effects + projected,
+                    key=lambda e: (e.cash_date, e.event_id),
+                )
+            ),
+        )
+    return replace(position, projected_until=horizon_end)
 
 
 # --- stream value type --------------------------------------------------------------
@@ -262,7 +305,11 @@ def _detect_variable_streams(
         if not totals:
             continue
         estimator = _variable_estimator(config.variable_spend_estimator)
-        monthly_total = estimator(totals)
+        # A variable-spend forecast is a modelled home-currency money amount, so it is
+        # normalised to the currency's 2dp scale before it enters the ledger. See
+        # `money.money_scale` for why this is required for exact, order-independent
+        # floor arithmetic and not merely presentation.
+        monthly_total = money_scale(estimator(totals))
         latest = max(group, key=lambda e: (e.cash_date, e.event_id))
         # Place the monthly total on the earliest observed day-of-month to keep the
         # projection conservative (earlier debits, later credits are safer for floor).

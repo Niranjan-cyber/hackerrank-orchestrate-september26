@@ -18,12 +18,12 @@ The floor is checked after every movement, so a day whose debit dips below the
 floor before its credit restores it is a breach. That is the only reading that
 cannot certify a plan on the strength of salary landing before rent (D4).
 
-WHY A BRUTE-FORCE DATE SEARCH, NOT A BINARY SEARCH
-Safety is not monotonic in the payment date: a payment made after a large one-off
-expense but before the income that covers it can be unsafe while both earlier and
-later dates are safe. So `earliest_date_for_full_payment` walks every candidate day
-in the window and returns the first safe one. 91 simulations per request is cheap
-and cannot be wrong about a monotonicity assumption that does not hold.
+WHY A LINEAR DATE WALK
+`earliest_date_for_full_payment` walks every candidate day in the window and returns
+the first safe one. The window is at most 91 days, so a full walk is cheap, and it
+makes no assumption about the shape of `holds_floor(candidate)`. A binary search would
+silently depend on that shape staying monotonic if the same-day ordering or floor rule
+ever changes.
 
 SAME-DAY ORDERING
 `same_day_rank` is the one named, swappable sort key. All three candidate
@@ -59,6 +59,19 @@ PLAN_PAYMENT = "plan_payment"
 
 PLAN_PAYMENT_RESERVED = "PLAN_PAYMENT_RESERVED"
 
+
+class ProjectionHorizonError(ValueError):
+    """A simulation window reaches past the position's inferred-projection coverage.
+
+    `simulate` extends its ledger to cover injected plan payments. Ticket 05 projects
+    recurring streams only as far as a stated horizon, so past that point the ledger
+    would contain explicit payments but no inferred recurring spend - an unsafe
+    under-check. Callers that need a longer window build the position with
+    `recurrence.with_projections(..., horizon_end=...)` first. Failing loudly here is
+    the deliberate choice; silently certifying an unseen window is the dangerous one.
+    """
+
+
 # The three candidate same-day conventions, keyed by `Config.same_day_ordering`.
 # Ticket 14 sweeps them; none is hard-coded into the ledger logic.
 _SAME_DAY_ORDERINGS: Mapping[str, Mapping[str, int]] = {
@@ -81,7 +94,12 @@ def same_day_rank(kind: str, ordering: str) -> int:
             f"unknown same_day_ordering {ordering!r}; "
             f"expected one of {sorted(_SAME_DAY_ORDERINGS)}"
         )
-    return order[kind]
+    rank = order.get(kind)
+    if rank is None:
+        raise ValueError(
+            f"unknown movement kind {kind!r}; expected one of {sorted(order)}"
+        )
+    return rank
 
 
 # --- ledger value types ------------------------------------------------------------
@@ -165,12 +183,24 @@ def simulate(
 
     `extra_debits` is how ticket 07 re-checks a candidate plan: each `(date, amount)`
     is injected as a scheduled debit. If a plan payment falls beyond the base 90-day
-    window the window is extended to cover it, so a long plan is re-checked for its
-    whole duration rather than silently truncated.
+    window the window is extended to cover it. The position must then already carry
+    inferred projections across the extended window (`with_projections`), or a
+    `ProjectionHorizonError` is raised rather than certifying a window whose recurring
+    spend is unknown.
     """
-    end = window_end(position.request_date, config.horizon_days)
+    base_end = window_end(position.request_date, config.horizon_days)
+    end = base_end
     if extra_debits:
         end = max(end, max(when for when, _ in extra_debits))
+        if end > base_end:
+            covered_until = position.projected_until
+            if covered_until is None or end > covered_until:
+                raise ProjectionHorizonError(
+                    f"plan extends to {end.isoformat()}, beyond the position's "
+                    f"projection coverage "
+                    f"{covered_until.isoformat() if covered_until else 'explicit rows only'}; "
+                    f"build the position with recurrence.with_projections(horizon_end=...)"
+                )
 
     movements = _movements(position, extra_debits, end, config)
     balance = position.opening_balance
@@ -226,8 +256,8 @@ def earliest_date_for_full_payment(
 ) -> date | None:
     """The first day a single full payment holds the floor; None if never.
 
-    Walks every candidate day in the fixed window, request_date included. Not
-    monotonic in general, so it does not binary-search - see the module docstring.
+    Walks every candidate day in the fixed window, request_date included. The walk
+    assumes nothing about the shape of `holds_floor` - see the module docstring.
     """
     last = window_end(position.request_date, config.horizon_days)
     candidate = position.request_date

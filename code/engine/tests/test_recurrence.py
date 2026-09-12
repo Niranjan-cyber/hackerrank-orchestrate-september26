@@ -639,6 +639,41 @@ class VariableSpendTest(unittest.TestCase):
         months = sorted({e.cash_date.month for e in grocery_projected})
         self.assertEqual(months, [2, 3, 4])
 
+    def test_variable_monthly_total_is_normalised_to_the_2dp_money_scale(self):
+        # Monthly totals 100, 100, 101 -> mean-of-6 is 100.333... (non-terminating).
+        # The modelled amount must enter the ledger at the currency scale: this keeps
+        # every ledger value terminating so floor arithmetic is exact and reproducible
+        # (CONTEXT.md D5 carve-out). Regression for the amount_safe_to_pay boundary bug.
+        events = tuple(
+            make_event(
+                event_id=f"g{index}",
+                category="groceries",
+                amount=str(amount),
+                settlement_date=settled_on,
+                status="settled",
+            )
+            for index, (settled_on, amount) in enumerate(
+                (
+                    ("2024-11-05", 100),
+                    ("2024-12-05", 100),
+                    ("2025-01-05", 101),
+                )
+            )
+        )
+        request = make_request(request_date="2025-02-01")
+        profile = make_profile(balance="10000")
+        position = cash_position(request, profile, events, {})
+        projected = projected_effects(position, events, request, profile, Config())
+        amounts = {e.amount_home for e in projected if e.category == "groceries"}
+        self.assertTrue(amounts)
+        for amount in amounts:
+            self.assertEqual(
+                amount.as_tuple().exponent,
+                -2,
+                f"modelled amount {amount} is not on the 2dp money scale",
+            )
+            self.assertEqual(amount, Decimal("100.33"))
+
     def test_variable_estimator_selectable(self):
         events = (
             make_event(

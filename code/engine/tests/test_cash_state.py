@@ -64,7 +64,9 @@ class OpeningBalanceTest(ClassifyMixin, unittest.TestCase):
 
 class PendingTest(ClassifyMixin, unittest.TestCase):
     def test_pending_debit_is_reserved(self):
-        event = make_event(status="pending", direction="debit", settlement_date="2025-02-20")
+        event = make_event(
+            status="pending", direction="debit", settlement_date="2025-02-20"
+        )
         effect = self.effect_of(event)
         self.assertEqual(effect.state, RESERVED_DEBIT)
         self.assertEqual(effect.amount_home, Decimal("100"))
@@ -95,7 +97,9 @@ class PendingTest(ClassifyMixin, unittest.TestCase):
 
 class ScheduledTest(ClassifyMixin, unittest.TestCase):
     def test_scheduled_debit_is_reserved(self):
-        event = make_event(status="scheduled", direction="debit", settlement_date="2025-03-01")
+        event = make_event(
+            status="scheduled", direction="debit", settlement_date="2025-03-01"
+        )
         self.assertEqual(self.state_of(event), RESERVED_DEBIT)
 
     def test_scheduled_credit_counts_as_expected_income(self):
@@ -109,6 +113,30 @@ class ScheduledTest(ClassifyMixin, unittest.TestCase):
         effect = self.effect_of(event)
         self.assertEqual(effect.state, EXPECTED_CREDIT)
         self.assertEqual(effect.amount_home, Decimal("100"))
+
+    def test_a_scheduled_non_income_credit_is_not_counted_until_it_settles(self):
+        # problem_statement.md:178 - refunds, bonuses, commissions and investment
+        # gains are not counted until they settle. Only a confirmed salary is counted
+        # while merely scheduled. (No such row exists in the supplied dataset, so this
+        # pins the contract rather than a current data shape.)
+        for event_type in ("refund", "investment_sale"):
+            with self.subTest(event_type=event_type):
+                event = make_event(
+                    status="scheduled",
+                    direction="credit",
+                    event_type=event_type,
+                    settlement_date="2025-02-20",
+                )
+                self.assertEqual(self.state_of(event), EXCLUDED)
+
+    def test_a_settled_non_income_credit_counts(self):
+        event = make_event(
+            status="settled",
+            direction="credit",
+            event_type="investment_sale",
+            settlement_date="2025-02-20",
+        )
+        self.assertEqual(self.state_of(event), EXPECTED_CREDIT)
 
 
 class NeverMovesCashTest(ClassifyMixin, unittest.TestCase):
@@ -151,7 +179,10 @@ class BlankAmountTest(ClassifyMixin, unittest.TestCase):
 
     def test_a_future_debit_with_a_blank_amount_is_flagged_not_silently_zero(self):
         event = make_event(
-            amount=None, status="pending", direction="debit", settlement_date="2025-02-20"
+            amount=None,
+            status="pending",
+            direction="debit",
+            settlement_date="2025-02-20",
         )
         effect = self.effect_of(event)
         self.assertEqual(effect.state, UNKNOWN_AMOUNT)
@@ -162,7 +193,10 @@ class BlankAmountTest(ClassifyMixin, unittest.TestCase):
         # by exactly the unresolved charge, which is the direction that wrongly
         # certifies a payment as safe.
         event = make_event(
-            amount=None, status="pending", direction="debit", settlement_date="2025-02-20"
+            amount=None,
+            status="pending",
+            direction="debit",
+            settlement_date="2025-02-20",
         )
         effect = self.effect_of(event)
         with self.assertRaises(UnresolvedAmountError) as caught:
@@ -215,7 +249,9 @@ class StaleOpenRowTest(ClassifyMixin, unittest.TestCase):
     """
 
     def test_a_pending_debit_whose_date_has_passed_is_reserved_immediately(self):
-        event = make_event(status="pending", direction="debit", settlement_date="2025-01-15")
+        event = make_event(
+            status="pending", direction="debit", settlement_date="2025-01-15"
+        )
         effect = self.effect_of(event)
         self.assertEqual(effect.state, RESERVED_DEBIT)
         self.assertEqual(
@@ -237,7 +273,9 @@ class StaleOpenRowTest(ClassifyMixin, unittest.TestCase):
 class CashPositionTest(unittest.TestCase):
     def test_position_separates_reserves_from_expected_credits(self):
         events = (
-            make_event(event_id="event_a", status="settled", settlement_date="2025-01-05"),
+            make_event(
+                event_id="event_a", status="settled", settlement_date="2025-01-05"
+            ),
             make_event(
                 event_id="event_b",
                 status="pending",

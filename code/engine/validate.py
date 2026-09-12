@@ -66,7 +66,9 @@ def validate_row(row: OutputRow, dataset: Dataset) -> tuple[Violation, ...]:
     if row.affordability_status not in AFFORDABILITY_STATUSES:
         fail("enum", f"bad affordability_status {row.affordability_status!r}")
     if row.recommended_payment_method not in PAYMENT_METHODS:
-        fail("enum", f"bad recommended_payment_method {row.recommended_payment_method!r}")
+        fail(
+            "enum", f"bad recommended_payment_method {row.recommended_payment_method!r}"
+        )
 
     # 5. affordable_now implies earliest == request_date
     if row.affordability_status == "affordable_now":
@@ -119,13 +121,19 @@ def validate_row(row: OutputRow, dataset: Dataset) -> tuple[Violation, ...]:
             fail("wait_shape", "wait payment must be on the earliest date")
 
     # 10. not_recommended shape
+    # `earliest_date_for_full_payment` is deliberately NOT constrained here. It is a
+    # capacity figure, independent of the user's payment-method preferences
+    # (problem_statement.md:163), and is left blank only when the full amount never
+    # becomes safe within the forecast period (problem_statement.md:113). A
+    # not_recommended row can legitimately carry a date when the full payment only
+    # becomes safe after `desired_completion_date`.
     if row.recommended_payment_method == "not_recommended":
         if row.payment_plan:
             fail("not_recommended_shape", "not_recommended requires an empty plan")
         if row.spending_changes_needed:
-            fail("not_recommended_shape", "not_recommended requires no spending changes")
-        if row.earliest_date_for_full_payment is not None:
-            fail("not_recommended_shape", "not_recommended requires an empty earliest date")
+            fail(
+                "not_recommended_shape", "not_recommended requires no spending changes"
+            )
 
     # 11. spending changes
     if len(row.spending_changes_needed) > 3:

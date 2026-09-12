@@ -47,6 +47,22 @@ def quantize(value: Decimal) -> Decimal:
     return value.quantize(TWO_PLACES, rounding=ROUND_HALF_UP)
 
 
+def money_scale(value: Decimal) -> Decimal:
+    """Normalise a *modelled* monetary amount to the home currency's 2dp scale.
+
+    Distinct from `quantize`, which is presentation-only. A forecast statistic such as
+    the variable-spend monthly total is an amount of money entering the ledger, so it
+    is held to the currency scale rather than carried at a statistical precision the
+    currency cannot express. This has a second, load-bearing effect: a mean-of-N
+    estimator divides by a non-power-of-two and produces a non-terminating decimal,
+    which makes ledger sums order-dependent at the Decimal context precision. Every
+    other ledger value (2dp event amounts, balances and 2dp*2dp FX products)
+    terminates, so normalising here keeps the whole ledger exactly summable and makes
+    the floor test reproducible. See CONTEXT.md D5.
+    """
+    return value.quantize(TWO_PLACES, rounding=ROUND_HALF_UP)
+
+
 def format_plan_amount(value: Decimal) -> str:
     """`payment_plan` and `reduce_to` form: 2dp when fractional, else bare integer."""
     q = quantize(value)

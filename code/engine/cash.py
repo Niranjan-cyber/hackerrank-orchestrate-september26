@@ -194,7 +194,9 @@ def classify_event(
     amount = event.amount
     override = (amount_overrides or {}).get(event.event_id)
 
-    def effect(state: str, reason_code: str, *, value: Decimal | None, when: date) -> CashEffect:
+    def effect(
+        state: str, reason_code: str, *, value: Decimal | None, when: date
+    ) -> CashEffect:
         return CashEffect(
             event_id=event.event_id,
             state=state,
@@ -219,7 +221,9 @@ def classify_event(
 
     # --- settled history is already inside the opening balance --------------------
     if event.status == "settled" and event.cash_date <= request_date:
-        return effect(IN_OPENING_BALANCE, SETTLED_IN_BALANCE, value=None, when=event.cash_date)
+        return effect(
+            IN_OPENING_BALANCE, SETTLED_IN_BALANCE, value=None, when=event.cash_date
+        )
 
     # --- unsettled credits are never counted --------------------------------------
     # Pending refunds, bonuses, commissions, lottery proceeds and investment gains all
@@ -232,7 +236,9 @@ def classify_event(
     # A scheduled credit whose date has already passed without settling is income that
     # visibly failed to arrive. Counting it would be the unsafe reading.
     if event.direction == "credit" and event.cash_date <= request_date:
-        return effect(EXCLUDED, STALE_CREDIT_NOT_COUNTED, value=None, when=event.cash_date)
+        return effect(
+            EXCLUDED, STALE_CREDIT_NOT_COUNTED, value=None, when=event.cash_date
+        )
 
     # --- everything remaining is future cash, so its amount matters ---------------
     if override is not None:
@@ -247,14 +253,31 @@ def classify_event(
             when=max(event.cash_date, request_date),
         )
     else:
-        amount_home = convert(amount, event.currency, home_currency, event.cash_date, rates)
+        amount_home = convert(
+            amount, event.currency, home_currency, event.cash_date, rates
+        )
 
     # A pending debit dated on or before request_date has not settled, so it is not in
     # the balance yet - reserve it immediately rather than on a date already gone.
     when = max(event.cash_date, request_date)
 
     if event.direction == "credit":
-        return effect(EXPECTED_CREDIT, CONFIRMED_CREDIT_COUNTED, value=amount_home, when=when)
+        # A merely `scheduled` credit is counted only when it is confirmed income (the
+        # "Next confirmed salary" row). Refunds, bonuses, commissions, lottery
+        # proceeds and investment gains are explicitly not counted until they settle
+        # (problem_statement.md:178), and a `settled` credit has settled whatever its
+        # type, so it still counts. No scheduled non-income credit exists in the
+        # supplied dataset; this keeps the contract from silently drifting.
+        if event.status == "scheduled" and event.event_type != "income":
+            return effect(
+                EXCLUDED,
+                UNSETTLED_CREDIT_NOT_COUNTED,
+                value=None,
+                when=event.cash_date,
+            )
+        return effect(
+            EXPECTED_CREDIT, CONFIRMED_CREDIT_COUNTED, value=amount_home, when=when
+        )
 
     if event.status == "pending":
         reason = (
@@ -264,7 +287,9 @@ def classify_event(
         )
         return effect(RESERVED_DEBIT, reason, value=amount_home, when=when)
 
-    return effect(RESERVED_DEBIT, SCHEDULED_DEBIT_RESERVED, value=amount_home, when=when)
+    return effect(
+        RESERVED_DEBIT, SCHEDULED_DEBIT_RESERVED, value=amount_home, when=when
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -282,6 +307,11 @@ class CashPosition:
     opening_balance: Decimal
     minimum_balance: Decimal
     effects: tuple[CashEffect, ...]
+    # How far inferred projections reach, when a position has been through
+    # `recurrence.with_projections`. `None` means "explicit rows only, no inferred
+    # coverage". The simulator refuses to extend beyond this rather than silently
+    # certify a window whose recurring spend it cannot see.
+    projected_until: date | None = None
 
     @property
     def reserved_debits(self) -> tuple[CashEffect, ...]:

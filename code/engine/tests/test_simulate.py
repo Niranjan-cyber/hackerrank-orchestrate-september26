@@ -6,7 +6,7 @@ derived figures, never on how the module is structured.
 
 Seams under test (all pure, all in `code/engine/simulate.py`):
 
-    simulate(position, config, *, extra_debits=(), horizon_end=None) -> Ledger
+    simulate(position, config, *, extra_debits=()) -> Ledger
     amount_safe_to_pay(position, config, requested_amount) -> Decimal
     earliest_date_for_full_payment(position, config, requested_amount) -> date | None
     same_day_rank(kind, ordering) -> int
@@ -18,12 +18,11 @@ has no notion of a spending change at all, which is the property being relied on
 from __future__ import annotations
 
 import unittest
-from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 
 from engine.cash import UnresolvedAmountError, cash_position
-from engine.recurrence import projected_effects
+from engine.recurrence import with_projections
 from engine.simulate import (
     amount_safe_to_pay,
     earliest_date_for_full_payment,
@@ -32,31 +31,29 @@ from engine.simulate import (
 )
 from engine.types import Config
 
-from .support import make_event, make_profile, make_request
+from .support import make_event, make_profile, make_request, shared_dataset
 
 REQUEST_DATE = date(2025, 2, 1)
 HORIZON_END = date(2025, 5, 2)  # request_date + 90 inclusive
 
 
-def build(events, *, request=None, profile=None, config=None, rates=None):
+def build(
+    events, *, request=None, profile=None, config=None, rates=None, horizon_end=None
+):
     """A CashPosition with ticket 05's inferred streams merged in, as the pipeline does."""
     request = request or make_request(request_date=REQUEST_DATE.isoformat())
     profile = profile or make_profile()
     config = config or Config()
     position = cash_position(request, profile, events, rates or {})
-    projected = projected_effects(
-        position, events, request, profile, config, rates or {}
+    position = with_projections(
+        position,
+        events,
+        request,
+        profile,
+        config,
+        rates or {},
+        horizon_end=horizon_end,
     )
-    if projected:
-        position = replace(
-            position,
-            effects=tuple(
-                sorted(
-                    position.effects + projected,
-                    key=lambda e: (e.cash_date, e.event_id),
-                )
-            ),
-        )
     return position, request, profile, config
 
 
@@ -322,6 +319,12 @@ class SameDayOrderingTest(unittest.TestCase):
             same_day_rank("plan_payment", debit_credit_payment.same_day_ordering),
         )
 
+    def test_unknown_ordering_or_kind_raises_value_error(self):
+        with self.assertRaises(ValueError):
+            same_day_rank("dataset_debit", "not-a-convention")
+        with self.assertRaises(ValueError):
+            same_day_rank("not-a-kind", "debits_credits_payment")
+
     def _same_day_events(self):
         return (
             make_event(
@@ -523,8 +526,12 @@ class PlanInjectionTest(unittest.TestCase):
         self.assertFalse(unsafe_plan.holds_floor)
 
     def test_plan_payments_beyond_the_base_horizon_extend_the_recheck(self):
+        # The position must be projected across the extended window first, or the
+        # simulator refuses (see test_simulate_horizon.py).
         position, _, _, config = build(
-            (), profile=make_profile(balance="5000", minimum="2000")
+            (),
+            profile=make_profile(balance="5000", minimum="2000"),
+            horizon_end=date(2025, 5, 10),
         )
         # A payment after day 90 must still be re-checked, not silently ignored.
         ledger = simulate(
@@ -570,6 +577,69 @@ class UnresolvedAmountTest(unittest.TestCase):
         self.assertEqual(
             amount_safe_to_pay(position, config, Decimal("1000")), Decimal("1000")
         )
+
+
+class SafeAmountInjectionPropertyTest(unittest.TestCase):
+    """The core invariant: the amount the simulator calls safe is actually safe.
+
+    Regression for the Decimal-context boundary bug found in review. `amount_safe_to_pay`
+    is derived from one ledger; re-injecting it as a payment builds a second ledger whose
+    cumulative sums can round differently. The fix removes non-terminating modelled
+    amounts, so the invariant holds *exactly* - never via an epsilon.
+
+    request_47 is the named counterexample: before the fix, injecting its safe amount
+    left the minimum a hair (3e-17) below the floor.
+    """
+
+    @staticmethod
+    def _position_for(dataset, request, config):
+        """The same merge the pipeline performs: explicit rows plus inferred streams."""
+        profile = dataset.profiles[request.user_id]
+        events = dataset.events_by_user.get(request.user_id, ())
+        position = cash_position(request, profile, events, dataset.rates)
+        return with_projections(
+            position, events, request, profile, config, dataset.rates
+        )
+
+    def test_request_47_boundary_reinjection_holds_the_floor(self):
+        dataset = shared_dataset()
+        config = Config()
+        request = next(r for r in dataset.requests if r.request_id == "request_47")
+        position = self._position_for(dataset, request, config)
+        safe = amount_safe_to_pay(position, config, request.requested_amount)
+        ledger = simulate(
+            position, config, extra_debits=((request.request_date, safe),)
+        )
+        self.assertTrue(
+            ledger.holds_floor,
+            f"injecting safe={safe} left {ledger.minimum_projected_balance} "
+            f"below floor {position.minimum_balance}",
+        )
+
+    def test_injecting_the_safe_amount_never_breaches_the_floor_for_every_request(self):
+        dataset = shared_dataset()
+        config = Config()
+        checked = 0
+        for request in dataset.requests:
+            position = self._position_for(dataset, request, config)
+            try:
+                safe = amount_safe_to_pay(position, config, request.requested_amount)
+            except UnresolvedAmountError:
+                continue
+            if safe <= Decimal("0"):
+                continue
+            ledger = simulate(
+                position, config, extra_debits=((request.request_date, safe),)
+            )
+            self.assertTrue(
+                ledger.holds_floor,
+                f"{request.request_id}: injecting safe={safe} left "
+                f"{ledger.minimum_projected_balance} below floor "
+                f"{position.minimum_balance}",
+            )
+            checked += 1
+        # ~194 of 250 are checkable: the rest have safe == 0 or an unresolved outflow.
+        self.assertGreater(checked, 150, "expected a substantial share to be checkable")
 
 
 if __name__ == "__main__":

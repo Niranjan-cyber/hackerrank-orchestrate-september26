@@ -240,7 +240,7 @@ An immediate method is eligible only if it appears in `payment_methods_user_will
 | `partial_payment` | in methods **and** `allows_partial_payment` is true **and** `0 < amount_safe_to_pay < requested_amount` **and** `earliest_date_for_full_payment` is non-empty and `<= desired_completion_date`. Exactly two payments; need not match any supplied option. |
 | `installments` | in methods; must **exactly** match a supplied option (`payment_amount`, `number_of_payments`, `first_payment_date`, `payment_frequency_days`); `number_of_payments <= max_installment_months`; every payment passes the floor test; final payment `<= desired_completion_date` |
 | `wait` | `full_payment` in methods; full payment not safe today but `earliest_date_for_full_payment` is non-empty. Plan = one payment on that date. |
-| `not_recommended` | fallback when no eligible safe plan exists. `payment_plan` = `none`, `spending_changes_needed` = `none`, `earliest` empty. |
+| `not_recommended` | fallback when no eligible safe plan exists. `payment_plan` = `none`, `spending_changes_needed` = `none`. `earliest` is a method-independent capacity figure and is left empty only when the full amount never becomes safe in the window (see §11.10, `problem_statement.md:113,163`). |
 
 Installment schedule generation: `first_payment_date + k * payment_frequency_days`, k = 0…n-1.
 Verified exactly against `request_02` (3 × 30d), `request_07` (3 × 28d), `request_22` (3 × 28d).
@@ -323,7 +323,11 @@ An event is changeable only if **all** hold:
    `p1 + p2 == requested_amount`; `allows_partial_payment` true; status is `affordable_with_plan`.
 8. `installments` ⟹ plan matches a supplied option exactly; `n <= max_installment_months`.
 9. `wait` ⟹ exactly one payment, on `earliest_date_for_full_payment`, for `requested_amount`.
-10. `not_recommended` ⟹ `payment_plan == none`, `spending_changes_needed == none`, `earliest` empty.
+10. `not_recommended` ⟹ `payment_plan == none`, `spending_changes_needed == none`. **`earliest` is not
+    constrained**: it is a method-independent capacity figure (`problem_statement.md:163`) and is left
+    empty only when the full amount never becomes safe within the forecast period
+    (`problem_statement.md:113`), so a `not_recommended` row may still carry a date after
+    `desired_completion_date`.
 11. `spending_changes_needed`: ≤3 entries; every event exists, is non-protected, has permitted
     flexibility and category; `reduce_to` amount `>= minimum_allowed_amount`; no event appears twice.
 12. **Number formatting** (reverse-engineered — easy to get wrong):
@@ -363,7 +367,7 @@ Full records to be written as ADRs under `docs/adr/` during `/to-spec`; summaris
 | D2 | Recurrence heuristic | ≥3 occurrences / 180-day lookback / 5%-or-absolute amount tolerance / per-frequency date ladder | Matches Plaid's maturity rule and BBVA's tolerance ladder; few named knobs instead of per-case tuning |
 | D3 | Recurring income projection | **Project** recurring salary streams, not just the one explicit `Next confirmed salary` row | Sample evidence is decisive: explicit-only under-reserves by orders of magnitude. A ≥3-occurrence history is *supported*, not *invented* |
 | D4 | Same-day ordering | Debits before credits, then `event_id` | Only ordering that cannot certify a plan on the strength of salary landing before rent |
-| D5 | Arithmetic | `Decimal` constructed from `str`. **Exact arithmetic with no intermediate rounding**; floor comparisons run on exact values; quantize to 2dp **only at output**, `ROUND_HALF_UP`. | Round 2 correction: directional rounding (`ROUND_DOWN`) is *wrong for a graded value* — it can miss ground truth by a cent for no safety benefit, because exact comparison already guarantees the floor holds. Rounding is a presentation concern, not a safety one. Supersedes both earlier positions. |
+| D5 | Arithmetic | `Decimal` constructed from `str`. **Exact arithmetic with no intermediate rounding**; floor comparisons run on exact values; quantize to 2dp **only at output**, `ROUND_HALF_UP`. **One carve-out:** a *modelled forecast statistic* (the variable-spend monthly total) is normalised to the home-currency 2dp scale by `money.money_scale` before it enters the ledger — it is an amount of money, not raw ledger arithmetic, and a mean-of-N is otherwise non-terminating, which makes sums order-dependent at the Decimal context precision. | Round 2 correction: directional rounding (`ROUND_DOWN`) is *wrong for a graded value* — it can miss ground truth by a cent for no safety benefit, because exact comparison already guarantees the floor holds. Rounding is a presentation concern, not a safety one. Supersedes both earlier positions. |
 | D6 | Ranking | Lexicographic comparison on a 6-tuple | A weighted score can trade away a deadline; the spec forbids that |
 | D7 | `reduce_to` target | Always `minimum_allowed_amount` | Matches every sample exactly |
 | D8 | Change-set selection | Smallest sufficient set: fewest changes → smallest total saving that still passes → lowest `event_id` | `request_21` chose reduce-over-stop when stop would have over-saved |
