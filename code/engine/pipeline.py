@@ -6,30 +6,32 @@ Pure by construction: it receives already-loaded dataset values and already-vali
 facts, and touches no filesystem, no network and no clock. That is what lets the 25
 solved samples run with no credential and no API.
 
-TICKET 01 SCOPE - READ THIS BEFORE JUDGING THE LOGIC
-The decision rule below is deliberately naive: today's headroom, no forward
-projection, no evidence, no plan generation. Ticket 01 exists to prove the whole path
-holds the output contract end to end. Real behaviour arrives in tickets 04-10:
+BUILD STATE - READ THIS BEFORE JUDGING THE LOGIC
+The seam signature and every output invariant are final, so each ticket replaces the
+body of `_decide` without touching anything around it. Implemented so far:
 
-  04  cash-state classification and the event lifecycle
-  05  recurrence detection and projection
-  06  the 90-day simulation, amount_safe_to_pay and earliest_date_for_full_payment
-  07  candidate plans and lexicographic ranking
+  04  cash-state classification and the event lifecycle          (committed)
+  05  recurrence detection and projection                        (committed)
+  06  the 90-day simulation, amount_safe_to_pay, earliest date   (this change)
+
+Still to come, and deliberately absent here:
+
+  07  candidate plans and lexicographic ranking - this is why the only plan emitted
+      below is the one-candidate `wait` case; partial, installments and spending
+      changes are not generated yet
   08  spending changes and the pruning rule
   09  reason codes and rendered explanations
   10  evidence authority and conflict precedence
-
-The seam signature and every output invariant are already final, so those tickets
-replace the body of `_decide` without touching anything around it.
 """
 
 from __future__ import annotations
 
 from dataclasses import replace
 
-from .cash import cash_position
-from .money import ZERO, clamp, format_plan_amount
+from .cash import UnresolvedAmountError, cash_position
+from .money import ZERO, format_plan_amount
 from .recurrence import projected_effects
+from .simulate import amount_safe_to_pay, earliest_date_for_full_payment
 from .types import Config, Dataset, Fact, OutputRow, Reason
 
 
@@ -70,9 +72,9 @@ def _decide(
         dataset.rates,
     )
 
-    # Ticket 05: layer inferred recurring streams onto the cash position. The
-    # simulator (Ticket 06) will consume these; the placeholder rule below still
-    # ignores them so the output contract stays valid until simulation lands.
+    # Ticket 05: layer inferred recurring streams onto the cash position. Ticket 06's
+    # simulator is the consumer; keeping the two steps separate means a projection bug
+    # cannot hide inside the simulator.
     projected = projected_effects(
         position,
         dataset.events_by_user.get(request.user_id, ()),
@@ -92,13 +94,7 @@ def _decide(
             ),
         )
 
-    # --- TICKET 01 placeholder rule: today's headroom, nothing projected ----------
-    # Still deliberately naive. The reserved debits below are *known* and already
-    # classified, but spending them against `amount_safe_to_pay` needs the horizon
-    # and the same-day ordering rule, which belong to ticket 06.
-    headroom = position.opening_balance - position.minimum_balance
-    safe = clamp(headroom, ZERO, request.requested_amount)
-
+    # --- Ticket 06: simulate the fixed 90-day window ------------------------------
     reasons.append(
         Reason(
             code="OPENING_BALANCE",
@@ -107,11 +103,30 @@ def _decide(
         )
     )
     reasons.append(
-        Reason(
-            code="MINIMUM_BALANCE_FLOOR",
-            amount=position.minimum_balance,
-        )
+        Reason(code="MINIMUM_BALANCE_FLOOR", amount=position.minimum_balance)
     )
+
+    # `safe` and `earliest` are pure capacity figures. The simulator applies the
+    # same-day ordering and the per-event floor test, and knows nothing about
+    # spending changes or the user's payment-method preferences.
+    try:
+        safe = amount_safe_to_pay(position, config, request.requested_amount)
+        earliest = earliest_date_for_full_payment(
+            position, config, request.requested_amount
+        )
+    except UnresolvedAmountError:
+        # A future outflow is still unpriced (a blank amount awaiting ticket 12's
+        # image extraction). There is no honest safe figure, so degrade to the
+        # conservative "cannot prove it is safe" row rather than under-reserve.
+        safe = ZERO
+        earliest = None
+        reasons.append(
+            Reason(
+                code="FORECAST_INCOMPLETE_UNRESOLVED_AMOUNT",
+                detail="a future outflow has no resolved amount",
+            )
+        )
+
     for effect in position.reserved_debits:
         reasons.append(
             Reason(
@@ -123,7 +138,7 @@ def _decide(
         )
     for effect in position.unknown_amounts:
         # A future outflow of unknown size. Recorded rather than assumed to be zero;
-        # ticket 12 resolves these four rows from their linked receipt images.
+        # ticket 12 resolves these from their linked receipt images.
         reasons.append(
             Reason(
                 code=effect.reason_code,
@@ -150,8 +165,23 @@ def _decide(
             )
         )
     reasons.append(
-        Reason(code="NAIVE_HEADROOM_ONLY", detail="ticket 01: no 90-day projection yet")
+        Reason(
+            code="WINDOW_MINIMUM_HEADROOM",
+            amount=safe,
+            detail="largest amount safe to pay on request_date",
+        )
     )
+    if earliest is None:
+        reasons.append(
+            Reason(
+                code="NO_SAFE_FULL_PAYMENT_DATE",
+                detail="full payment never holds the floor within the window",
+            )
+        )
+    else:
+        reasons.append(
+            Reason(code="EARLIEST_FULL_PAYMENT_DATE", detail=earliest.isoformat())
+        )
 
     accepts_full = "full_payment" in profile.payment_methods_considered
 
@@ -171,11 +201,33 @@ def _decide(
             reasons=tuple(reasons),
         )
 
-    # Fallback: nothing eligible and safe is provable with the placeholder rule.
+    # `wait` is the one safe plan ticket 06 can certify end to end: when the user
+    # accepts full payment and the simulator proves it becomes safe later, that date
+    # is the plan. It is safe by construction - earliest is the first date the full
+    # payment holds the floor.
+    if (
+        accepts_full
+        and earliest is not None
+        and earliest <= request.desired_completion_date
+    ):
+        return OutputRow(
+            request_id=request.request_id,
+            amount_safe_to_pay=safe,
+            affordability_status="affordable_later",
+            recommended_payment_method="wait",
+            payment_plan=((earliest, request.requested_amount),),
+            earliest_date_for_full_payment=earliest,
+            spending_changes_needed=(),
+            decision_explanation=_explain_wait(request, profile, earliest),
+            reasons=tuple(reasons),
+        )
+
+    # Fallback until tickets 07/08 generate partial, installment and spending-change
+    # plans. No safe, eligible plan is provable yet.
     reasons.append(
         Reason(
             code="NO_SAFE_ELIGIBLE_PLAN",
-            detail="placeholder rule found no safe full payment today",
+            detail="no safe plan provable before tickets 07/08 candidates",
         )
     )
     return OutputRow(
@@ -201,6 +253,16 @@ def _explain_now(request, profile) -> str:
     return (
         f"Pay {profile.home_currency} {format_plan_amount(request.requested_amount)} "
         f"on {request.request_date.isoformat()}. This keeps at least "
+        f"{profile.home_currency} {format_plan_amount(profile.minimum_balance_to_keep)} "
+        f"available."
+    )
+
+
+def _explain_wait(request, profile, earliest) -> str:
+    return (
+        f"Wait until {earliest.isoformat()} before paying "
+        f"{profile.home_currency} {format_plan_amount(request.requested_amount)}. "
+        f"That is the earliest date the full payment keeps at least "
         f"{profile.home_currency} {format_plan_amount(profile.minimum_balance_to_keep)} "
         f"available."
     )
