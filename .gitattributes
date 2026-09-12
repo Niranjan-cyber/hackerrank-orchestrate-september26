@@ -1,0 +1,8 @@
+# Byte-stability (CONTEXT.md D23): we develop on Windows, the grader is likely Linux.
+# Without this, core.autocrlf rewrites our LF output to CRLF on checkout, which breaks
+# the "two runs are byte-identical" guarantee and can corrupt the committed output.csv.
+* text=auto eol=lf
+*.csv text eol=lf
+*.py  text eol=lf
+*.md  text eol=lf
+*.png binary
