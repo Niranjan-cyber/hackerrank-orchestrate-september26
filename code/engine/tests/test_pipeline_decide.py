@@ -98,10 +98,17 @@ class EarliestPropagationTest(unittest.TestCase):
             ),
         )
         row = decide(request, profile, events)
-        # `wait` is ineligible past the deadline, but capacity is not method-dependent.
-        self.assertEqual(row.recommended_payment_method, "not_recommended")
-        self.assertEqual(row.affordability_status, "not_affordable")
+        # Ticket 07 changed the *recommendation* here and not the capacity figure.
+        # A late `wait` is still a candidate - it is the only thing level 1 of the
+        # ranking can ever decide, and ticket 08's spending-change variants have to
+        # beat it there (CONTEXT.md section 8, `plans.add_wait`). What this test
+        # guards is unchanged: `earliest` is reported whatever the chosen method.
+        self.assertEqual(row.recommended_payment_method, "wait")
+        self.assertEqual(row.affordability_status, "affordable_later")
         self.assertEqual(row.earliest_date_for_full_payment, date(2025, 2, 15))
+        self.assertGreater(
+            row.earliest_date_for_full_payment, request.desired_completion_date
+        )
 
     def test_installments_only_user_reports_earliest_independent_of_method(self):
         request = make_request(

@@ -26,7 +26,7 @@ REPO_ROOT = CODE_DIR.parent
 DATASET_DIR = REPO_ROOT / "dataset"
 
 from engine.loaders import load_dataset, load_requests  # noqa: E402
-from engine.types import Event, Profile, Request  # noqa: E402
+from engine.types import Event, PaymentOption, Profile, Request  # noqa: E402
 
 
 # The real dataset is ~25k rows. Loading it once and sharing it read-only keeps the
@@ -152,4 +152,39 @@ def make_request(
         desired_completion_date=date.fromisoformat(desired_completion_date),
         allows_partial_payment=allows_partial_payment,
         request_text="test",
+    )
+
+
+def make_payment_option(
+    payment_option_id: str = "payment_option_01",
+    *,
+    request_id: str = "request_test",
+    payment_method: str = "installments",
+    payment_amount: str = "1000",
+    number_of_payments: int = 3,
+    first_payment_date: str = "2025-02-01",
+    payment_frequency_days: int | None = 30,
+    financing_fee: str = "0",
+    total_payable_amount: str | None = None,
+) -> PaymentOption:
+    """A supplied seller option. Defaults describe a 3 x 30-day installment plan.
+
+    `total_payable_amount` defaults to `payment_amount * number_of_payments`, which is
+    the identity every one of the 790 supplied options satisfies.
+    """
+    amount = Decimal(payment_amount)
+    return PaymentOption(
+        payment_option_id=payment_option_id,
+        request_id=request_id,
+        payment_method=payment_method,
+        payment_amount=amount,
+        number_of_payments=number_of_payments,
+        first_payment_date=date.fromisoformat(first_payment_date),
+        payment_frequency_days=payment_frequency_days,
+        financing_fee=Decimal(financing_fee),
+        total_payable_amount=(
+            amount * number_of_payments
+            if total_payable_amount is None
+            else Decimal(total_payable_amount)
+        ),
     )

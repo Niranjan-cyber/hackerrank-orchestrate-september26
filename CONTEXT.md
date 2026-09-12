@@ -239,7 +239,7 @@ An immediate method is eligible only if it appears in `payment_methods_user_will
 | `full_payment` | in methods; full amount passes the floor test on `request_date` (optionally after ≤3 permitted spending changes) |
 | `partial_payment` | in methods **and** `allows_partial_payment` is true **and** `0 < amount_safe_to_pay < requested_amount` **and** `earliest_date_for_full_payment` is non-empty and `<= desired_completion_date`. Exactly two payments; need not match any supplied option. |
 | `installments` | in methods; must **exactly** match a supplied option (`payment_amount`, `number_of_payments`, `first_payment_date`, `payment_frequency_days`); `number_of_payments <= max_installment_months`; every payment passes the floor test; final payment `<= desired_completion_date` |
-| `wait` | `full_payment` in methods; full payment not safe today but `earliest_date_for_full_payment` is non-empty. Plan = one payment on that date. |
+| `wait` | `full_payment` in methods; full payment not safe today but `earliest_date_for_full_payment` is non-empty. Plan = one payment on that date. **Deliberately not gated on the deadline** — see D12. |
 | `not_recommended` | fallback when no eligible safe plan exists. `payment_plan` = `none`, `spending_changes_needed` = `none`. `earliest` is a method-independent capacity figure and is left empty only when the full amount never becomes safe in the window (see §11.10, `problem_statement.md:113,163`). |
 
 Installment schedule generation: `first_payment_date + k * payment_frequency_days`, k = 0…n-1.
@@ -274,6 +274,16 @@ option (total 41,246.40) — same deadline outcome, same zero spending changes, 
 
 Prune ineligible options **before** ranking (over `max_installment_months`, final payment after the
 deadline, method not accepted), rather than ranking then rejecting.
+
+**Level 1 is live, and a late `wait` is the only thing that makes it so.** `problem_statement.md:180`
+("the plan must complete the request by `desired_completion_date`") and criterion 1 of the ranking at
+line 191 cannot both be read as hard gates without one of them being dead weight. The reading that
+keeps both alive: the two methods the problem statement gates explicitly stay gated — `partial`
+(line 146) and `installments` (§8, sample-derived) — while `wait` is generated even when `earliest`
+falls after the deadline, carrying `completes_by_deadline = False`. It then loses at level 1 to any
+plan that does complete. This is exactly the samples `06`/`11`/`21` shape and is what ticket 08's
+change-variants must beat. Both gates are `Config` flags (`installments_must_complete_by_deadline`,
+`wait_must_complete_by_deadline`) so ticket 14 can sweep the reading rather than argue it.
 
 ---
 
@@ -374,6 +384,7 @@ Full records to be written as ADRs under `docs/adr/` during `/to-spec`; summaris
 | D9 | ~~Ignore rows marked as possible duplicates~~ **REVERSED — reserve them** | **Reserve** all 6 "Possible duplicate card charge" pending debits | Verification reversal: **all 6 have a dispute message stating "a reversal has not been posted to the account yet; the dispute is open"** (`message_106/121/157/164/183/197`). The money is still out. The spec's "ignore duplicate records" means **duplicate representations of one event** (README:112 "de-duplicate repeated representations of the same event") — not a genuine second charge under open dispute. Conflict precedence rule 4 ("the financially safer interpretation") independently requires reserving. **The true de-duplication case is `internal_transfer`** (6 messages), where a matching debit+credit between the user's own accounts must net to zero. **Amended by ticket 04:** those 6 messages have *no event rows behind them* — all 6 carry a blank `related_event_id`, and a full scan finds no equal-magnitude debit/credit pair for 5 of the 6 users in any currency, on any date, in any status (the 6th, `user_261`, has only the ordinary settled card-reversal pair). There is no `transfer` event type in the schema at all; credits are only `income`/`refund`/`investment_sale`. So the netting requirement is satisfied with **no code**: nothing exists to net, any equal-and-opposite settled pair is already inside the opening balance, and fabricating the missing legs would be inventing financial facts. Pinned by `test_no_internal_transfer_pair_exists_as_event_rows`. |
 | D10 | Dependencies | **Zero runtime dependencies — stdlib only.** Model calls go out over stdlib `urllib.request` to Groq's OpenAI-compatible REST endpoint. | Updated after the provider finding: the `anthropic` SDK is moot without an Anthropic key, and a REST call over `urllib` removes the last third-party package. A grader then needs nothing but Python. `pandas` stays rejected (dtype coercion threatens determinism); `rapidfuzz` stays rejected (stdlib `difflib` suffices). |
 | D11 | Explanations | Deterministic templates **rendered from reason codes** | Consistency is graded; stops injected text reaching a graded column; reason codes make it grounded rather than generic |
+| D12 | Is `desired_completion_date` a hard gate or a ranking level? | **Both, split by method**: hard for `partial` and `installments`, soft for `wait` | `problem_statement.md:180` states it as a requirement and line 191 lists it as ranking criterion 1; a uniform hard gate makes criterion 1 dead code and forces `not_affordable` on a request whose full amount *is* "expected to become safe later" — the published definition of `affordable_later`. Gating only the two methods the problem statement gates explicitly keeps every stated line true. Reversible through `Config.wait_must_complete_by_deadline` / `Config.installments_must_complete_by_deadline`. Changed the ticket-06 assertion in `test_pipeline_decide.py`; `earliest` propagation is unaffected. |
 
 ### Confirmed with the user (2026-09-12)
 

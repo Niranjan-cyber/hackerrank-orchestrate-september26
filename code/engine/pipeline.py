@@ -12,15 +12,16 @@ body of `_decide` without touching anything around it. Implemented so far:
 
   04  cash-state classification and the event lifecycle          (committed)
   05  recurrence detection and projection                        (committed)
-  06  the 90-day simulation, amount_safe_to_pay, earliest date   (this change)
+  06  the 90-day simulation, amount_safe_to_pay, earliest date   (committed)
+  07  candidate plans and lexicographic ranking                  (this change)
 
 Still to come, and deliberately absent here:
 
-  07  candidate plans and lexicographic ranking - this is why the only plan emitted
-      below is the one-candidate `wait` case; partial, installments and spending
-      changes are not generated yet
-  08  spending changes and the pruning rule
-  09  reason codes and rendered explanations
+  08  spending changes and the pruning rule - every candidate `plans` builds today
+      has `needs_spending_changes = False`, and level 2 of the rank key is already
+      in place waiting for the change-variants
+  09  reason codes and rendered explanations - the `_explain*` renderers at the foot
+      of this file are the placeholder
   10  evidence authority and conflict precedence
 """
 
@@ -28,6 +29,7 @@ from __future__ import annotations
 
 from .cash import UnresolvedAmountError, cash_position
 from .money import ZERO, format_plan_amount
+from .plans import best_plan, candidate_plans
 from .recurrence import with_projections
 from .simulate import amount_safe_to_pay, earliest_date_for_full_payment
 from .types import Config, Dataset, Fact, OutputRow, Reason
@@ -171,66 +173,56 @@ def _decide(
             Reason(code="EARLIEST_FULL_PAYMENT_DATE", detail=earliest.isoformat())
         )
 
-    accepts_full = "full_payment" in profile.payment_methods_considered
+    # --- Ticket 07: enumerate, prune, certify, rank --------------------------------
+    # Everything method-specific lives in `plans`. This shell only hands it the
+    # request, the certified position and the two capacity figures, and renders
+    # whatever comes back. Adding ticket 08's spending-change variants means adding
+    # candidates there, not another branch here.
+    candidates = candidate_plans(
+        request,
+        profile,
+        dataset.options_by_request.get(request.request_id, ()),
+        position,
+        config,
+        safe=safe,
+        earliest=earliest,
+    )
+    reasons.extend(candidates.reasons)
+    chosen = best_plan(candidates.plans)
 
-    # `affordable_now` needs BOTH the full amount safe today AND full_payment among the
-    # user's accepted methods. Sample request_12 proves the second half: it has
-    # capacity today but does not accept full payment, so it is affordable_with_plan.
-    if safe == request.requested_amount and accepts_full:
-        return OutputRow(
-            request_id=request.request_id,
-            amount_safe_to_pay=safe,
-            affordability_status="affordable_now",
-            recommended_payment_method="full_payment",
-            payment_plan=((request.request_date, request.requested_amount),),
-            earliest_date_for_full_payment=request.request_date,
-            spending_changes_needed=(),
-            decision_explanation=_explain_now(request, profile),
-            reasons=tuple(reasons),
+    if chosen is None:
+        reasons.append(
+            Reason(
+                code="NO_SAFE_ELIGIBLE_PLAN",
+                detail="no eligible payment method survived the floor test",
+            )
         )
-
-    # `wait` is the one safe plan ticket 06 can certify end to end: when the user
-    # accepts full payment and the simulator proves it becomes safe later, that date
-    # is the plan. It is safe by construction - earliest is the first date the full
-    # payment holds the floor.
-    if (
-        accepts_full
-        and earliest is not None
-        and earliest <= request.desired_completion_date
-    ):
         return OutputRow(
             request_id=request.request_id,
             amount_safe_to_pay=safe,
-            affordability_status="affordable_later",
-            recommended_payment_method="wait",
-            payment_plan=((earliest, request.requested_amount),),
+            affordability_status="not_affordable",
+            recommended_payment_method="not_recommended",
+            payment_plan=(),
+            # `earliest` is a capacity figure, not a plan field: it is reported
+            # whenever the full amount becomes safe within the window, independent of
+            # whether any eligible plan was found. The problem statement blanks it only
+            # when the full amount is never safe in the forecast period.
             earliest_date_for_full_payment=earliest,
             spending_changes_needed=(),
-            decision_explanation=_explain_wait(request, profile, earliest),
+            decision_explanation=_explain_not_recommended(request, profile, safe),
             reasons=tuple(reasons),
         )
 
-    # Fallback until tickets 07/08 generate partial, installment and spending-change
-    # plans. No safe, eligible plan is provable yet.
-    reasons.append(
-        Reason(
-            code="NO_SAFE_ELIGIBLE_PLAN",
-            detail="no safe plan provable before tickets 07/08 candidates",
-        )
-    )
+    reasons.extend(chosen.reasons)
     return OutputRow(
         request_id=request.request_id,
         amount_safe_to_pay=safe,
-        affordability_status="not_affordable",
-        recommended_payment_method="not_recommended",
-        payment_plan=(),
-        # `earliest` is a capacity figure, not a plan field: it is reported whenever
-        # the full amount becomes safe within the window, independent of whether any
-        # eligible plan was found. The problem statement blanks it only when the full
-        # amount is never safe in the forecast period.
+        affordability_status=chosen.status,
+        recommended_payment_method=chosen.method,
+        payment_plan=chosen.payments,
         earliest_date_for_full_payment=earliest,
-        spending_changes_needed=(),
-        decision_explanation=_explain_not_recommended(request, profile, safe),
+        spending_changes_needed=chosen.spending_changes,
+        decision_explanation=_explain(chosen, request, profile),
         reasons=tuple(reasons),
     )
 
@@ -268,4 +260,37 @@ def _explain_not_recommended(request, profile, safe) -> str:
         f"{format_plan_amount(safe)} can be paid while keeping "
         f"{profile.home_currency} {format_plan_amount(profile.minimum_balance_to_keep)} "
         f"available."
+    )
+
+
+def _explain(plan, request, profile) -> str:
+    """Render the winning plan. Ticket 09 replaces this with reason-code rendering."""
+    if plan.method == "full_payment":
+        return _explain_now(request, profile)
+    if plan.method == "wait":
+        return _explain_wait(request, profile, plan.start_date)
+    if plan.method == "partial_payment":
+        return _explain_partial(request, profile, plan)
+    return _explain_installments(request, profile, plan)
+
+
+def _explain_partial(request, profile, plan) -> str:
+    (_, today), (later_date, later) = plan.payments
+    return (
+        f"Pay {profile.home_currency} {format_plan_amount(today)} on "
+        f"{request.request_date.isoformat()} and the remaining "
+        f"{profile.home_currency} {format_plan_amount(later)} on "
+        f"{later_date.isoformat()}. This completes the full request and keeps "
+        f"{profile.home_currency} "
+        f"{format_plan_amount(profile.minimum_balance_to_keep)} protected."
+    )
+
+
+def _explain_installments(request, profile, plan) -> str:
+    amount = plan.payments[0][1]
+    return (
+        f"Use {plan.payment_count} installments of {profile.home_currency} "
+        f"{format_plan_amount(amount)}, starting {plan.start_date.isoformat()}. "
+        f"This keeps at least {profile.home_currency} "
+        f"{format_plan_amount(profile.minimum_balance_to_keep)} available."
     )

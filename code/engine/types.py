@@ -176,6 +176,17 @@ class Config:
     variable_spend_estimator: str = "max_median3_mean6"
     project_income_beyond_confirmed: bool = True
 
+    # plan eligibility, ticket 07/14. Both encode how hard a gate
+    # `desired_completion_date` is. `problem_statement.md:180` states the plan "must
+    # complete the request by desired_completion_date", but criterion 1 of the ranking
+    # at line 191 is *also* "complete the full request by desired_completion_date" -
+    # which is dead weight if completion is a hard gate on every method. CONTEXT.md
+    # section 8 resolves it the only way that keeps both lines live: the two methods
+    # the problem statement gates explicitly stay gated, and `wait` is generated even
+    # when it lands late so that level 1 has something to decide. Unfrozen: ticket 14.
+    installments_must_complete_by_deadline: bool = True
+    wait_must_complete_by_deadline: bool = False
+
     # recurrence boundaries / calibration, ticket 05/14
     weekly_date_tolerance_days: int = 2
     biweekly_date_tolerance_days: int = 3
