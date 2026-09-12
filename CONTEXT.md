@@ -355,11 +355,11 @@ Full records to be written as ADRs under `docs/adr/` during `/to-spec`; summaris
 | D2 | Recurrence heuristic | ≥3 occurrences / 180-day lookback / 5%-or-absolute amount tolerance / per-frequency date ladder | Matches Plaid's maturity rule and BBVA's tolerance ladder; few named knobs instead of per-case tuning |
 | D3 | Recurring income projection | **Project** recurring salary streams, not just the one explicit `Next confirmed salary` row | Sample evidence is decisive: explicit-only under-reserves by orders of magnitude. A ≥3-occurrence history is *supported*, not *invented* |
 | D4 | Same-day ordering | Debits before credits, then `event_id` | Only ordering that cannot certify a plan on the strength of salary landing before rent |
-| D5 | Arithmetic | `Decimal` from `str`, quantize on write, **directional rounding**: `ROUND_DOWN` for `amount_safe_to_pay`, `ROUND_UP` for projected expenses | Prevents non-reproducible floor-comparison flips. Directional beats half-up: it is aligned with the floor test we certify (supersedes the earlier blanket ROUND_HALF_UP) |
+| D5 | Arithmetic | `Decimal` constructed from `str`. **Exact arithmetic with no intermediate rounding**; floor comparisons run on exact values; quantize to 2dp **only at output**, `ROUND_HALF_UP`. | Round 2 correction: directional rounding (`ROUND_DOWN`) is *wrong for a graded value* — it can miss ground truth by a cent for no safety benefit, because exact comparison already guarantees the floor holds. Rounding is a presentation concern, not a safety one. Supersedes both earlier positions. |
 | D6 | Ranking | Lexicographic comparison on a 6-tuple | A weighted score can trade away a deadline; the spec forbids that |
 | D7 | `reduce_to` target | Always `minimum_allowed_amount` | Matches every sample exactly |
 | D8 | Change-set selection | Smallest sufficient set: fewest changes → smallest total saving that still passes → lowest `event_id` | `request_21` chose reduce-over-stop when stop would have over-saved |
-| D9 | Duplicate handling | Ignore rows marked as possible duplicates even when `pending debit` | Spec says ignore duplicates; 6 such rows would otherwise be double-reserved |
+| D9 | ~~Ignore rows marked as possible duplicates~~ **REVERSED — reserve them** | **Reserve** all 6 "Possible duplicate card charge" pending debits | Verification reversal: **all 6 have a dispute message stating "a reversal has not been posted to the account yet; the dispute is open"** (`message_106/121/157/164/183/197`). The money is still out. The spec's "ignore duplicate records" means **duplicate representations of one event** (README:112 "de-duplicate repeated representations of the same event") — not a genuine second charge under open dispute. Conflict precedence rule 4 ("the financially safer interpretation") independently requires reserving. **The true de-duplication case is `internal_transfer`** (6 messages), where a matching debit+credit between the user's own accounts must net to zero. |
 | D10 | Dependencies | stdlib only, plus the `anthropic` SDK | Nothing researched justified a dependency; pandas adds dtype surprises for a 25k-row job |
 | D11 | Explanations | Deterministic templates **rendered from reason codes** | Consistency is graded; stops injected text reaching a graded column; reason codes make it grounded rather than generic |
 
@@ -387,22 +387,46 @@ Full records to be written as ADRs under `docs/adr/` during `/to-spec`; summaris
 | D24 | Test runner | stdlib **`unittest`** | `pytest` is not installed here (broken `iniconfig`), and stdlib keeps the zero-dependency promise for graders |
 | D25 | Harness shape | Golden-file + `--update` flag + **per-column scorecard**; `decision_explanation` reported separately, never a pass/fail gate | Characterization testing (Feathers) + the Go `testdata` convention: accepting a deviation becomes a visible diff in the commit |
 
-## 14. Decisions still requiring confirmation
+### Confirmed with the user after cross-verification (2026-09-12)
 
-Carried to the next grilling round:
+| # | Decision | Chosen |
+|---|---|---|
+| D26 | Final run may be **warm** | The run that produces `output.csv` **and** `usage_report.md` is the final full-dataset run, and it **may be cache-backed**. **No cold end-to-end run is required.** |
+| D27 | Usage report honesty | `usage_report.md` reports **only the model calls actually made during that final run**, and **separately documents fixture/cache hits**. Truthful either way; `caching` is named as encouraged in `problem_statement.md:251`. |
+| D28 | Vision at submission runtime | **No vision API key is assumed or required.** Development-time vision extraction (opencode/Gemini) → **verified fixtures** is the default and shipped path. |
+| D29 | Future runtime vision | If a runtime vision provider appears, it plugs in **behind the same `ExtractionPort`** and never becomes a dependency. |
+| D30 | Fact enum size | **25 fact types, not 11.** Verification classified all 215 messages with **zero unclassified**; the earlier figure of 11 came from an incomplete census. See [`docs/contracts/extraction-fact-schema.md`](docs/contracts/extraction-fact-schema.md). |
+| D31 | Evidence direction rule | Evidence may **always** move the forecast in the **conservative** direction (less cash). It may move it **optimistically only for confirmed salary facts** — the one exception the spec names ("Count confirmed salary on its settlement date"). |
 
-1. **`affordable_now` philosophy** — YNAB deliberately does not forecast at all. Should
-   `affordable_now` rest on settled cash only, with projections confined to
-   `earliest_date_for_full_payment`? Sample evidence constrains `amount_safe_to_pay` to be net of
-   projections, but the *status* assignment is a separate choice.
-2. **Issue tracker viability** — Issues are **disabled** on the fork (`has_issues: false`), so
-   `gh issue create` fails today. Enable them, or drop to a local markdown tracker for a solo build?
-3. **Image model routing** — cost is ~5 cents either way, so this is purely an accuracy call:
-   Sonnet 5 for all 16 images, and do we spend ~$0.13 on two-call self-consistency?
-4. **`verification-before-completion` skill** — install it, or rely on the validator plus a manual
-   packaging checklist?
-5. **Evidence-authority strictness (D19)** — confirm the asymmetric rule is the right reading of
-   "use messages to amend facts", given 22 of our messages are genuine salary *increases*.
+## 14. Open questions and what Round 2 closed
+
+### Closed by evidence in Grill Round 2 (no user decision needed)
+
+| Question | Resolution | Evidence |
+|---|---|---|
+| `affordable_now` philosophy (YNAB "don't forecast" variant) | **Rejected.** Keep projections inside `amount_safe_to_pay` and derive status from it. | Sample arithmetic forces `amount_safe_to_pay` to be net of projected commitments; a settled-cash-only variant cannot reproduce it. Splitting the two would need a second, unevidenced rule. |
+| Does `wait` outrank `installments` when both are eligible? | **Yes — `wait` wins**, because it pays exactly `requested_amount` with no financing fee and level 3 (minimise total paid) sits above level 4 (start earlier). | Strongly corroborated: **all five installment samples** (02, 07, 12, 17, 22) have `full_payment` **absent** from `payment_methods_user_will_consider`, and **no sample where `full_payment` is accepted ever chose installments**. |
+| Spending-change search combinatorics | Only expand change-set variants when **no** no-change candidate wins the higher lexicographic tiers. Provably rank-equivalent and vastly cheaper. | Ranking level 2 places "no spending changes" above cost/timing, so a change-set can only matter when the no-change tier is empty at the same deadline outcome. |
+| Retrieval layer | **CUT.** | One user per request, 56–129 events, ≤1 message, ≤1 image — direct joins on `user_id`/`request_id`. Nothing to retrieve. |
+| Counterfactual "what-if" as a separate feature | **CUT as separate.** It is already `spending_changes_needed`. | The challenge contract makes the counterfactual a required output column, not an extra feature. |
+| Position of the plan payment in same-day ordering | Dataset debits → dataset credits → **plan payment last**. | Many sample `earliest_date_for_full_payment` values land **exactly on** the salary settlement date (the 15th). If the payment had to precede that day's income, earliest would fall on the 16th in most of those cases. Refines D4, which still governs dataset events. |
+| Rounding direction | See corrected D5. | Directional rounding buys no safety once comparisons are exact, and risks a cent-level miss on a graded value. |
+
+### Still open — carried to the user
+
+1. **Vision provider for the 16 blank amounts.** Groq has **no** multimodal model, so this is the one
+   real capability gap. See [`docs/investigation/provider-capability.md`](docs/investigation/provider-capability.md) §3.
+2. **Message extraction: LLM-primary or rule-primary?** The message corpus is visibly
+   template-generated and **fully available to us** (there is no hidden message set), so a
+   deterministic parser is legitimate engineering rather than overfitting.
+3. **Issue tracker** — Issues are disabled on the fork; enable, or drop to filesystem-only coordination?
+4. **`verification-before-completion`** — install, or manual packaging checklist?
+5. **Evidence-authority strictness (D19)** — confirm the asymmetric rule given that 22 messages are
+   genuine salary *increases*.
+6. **`earliest_date_for_full_payment` horizon** — fixed 90-day window anchored at `request_date`
+   (recommended, matches "the next 90 days") vs a sliding 90-day window from each candidate date.
+   All sample earliest dates fall within 73 days of `request_date`, so no sample discriminates; the
+   accepted limitation of the fixed window is that candidate dates near day 90 are only weakly tested.
 
 ---
 
