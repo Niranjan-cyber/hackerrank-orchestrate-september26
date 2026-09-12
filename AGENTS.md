@@ -264,7 +264,10 @@ This section lives here, not in `CLAUDE.md`, so every AGENTS.md-aware tool reads
 
 ### Issue tracker
 
-Issues and specs live as GitHub issues on `origin` (`Niranjan-cyber/hackerrank-orchestrate-september26`), driven by the `gh` CLI. See `docs/agents/issue-tracker.md`.
+**Filesystem: `.scratch/buy-or-wait/`** — one markdown file per ticket under `issues/`, board and
+dependency graph in `README.md`. GitHub Issues are **disabled on this fork** (`has_issues: false`),
+and a filesystem tracker suits a solo build driven from two local terminals. See
+`docs/agents/issue-tracker.md`, which retains the GitHub conventions in case that changes.
 
 ### Triage labels
 

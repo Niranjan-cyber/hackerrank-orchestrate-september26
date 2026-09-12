@@ -121,17 +121,33 @@ plausible:
 
 ### Seams and shape
 
-- **One primary seam**: `run_pipeline(dataset_dir, port, config) -> tuple[OutputRow, ...]`, a pure
-  function over values. Every one of the 25 samples is exercised through it. The simulator, ranker,
-  and validator are tested *through* this seam, not individually, except where a behaviour is
-  unreachable from the top (month-end clamping, the seven lifecycle patterns, number formatting).
-- **One forced I/O seam**: `ExtractionPort`, frozen in the contract. Adapters: `FixtureExtractor`
-  (default, offline), `GroqExtractor` (messages), `VisionExtractor` (images, development-time only).
-- **Functional core, imperative shell.** All financial logic is pure functions over frozen
-  dataclasses. `code/main.py` is the only shell: read CSVs, build the port, call the core, write the
-  CSV. *Acceptance test for this decision: if `main.py` contains an `if` statement about finance, the
-  logic is in the wrong place.*
+- **The deterministic core seam** — genuinely pure, because it receives already-loaded values and
+  performs no I/O:
+
+  ```text
+  run_pipeline(dataset, extraction_facts, config) -> tuple[OutputRow, ...]
+  ```
+
+  `dataset` is the parsed CSV data, `extraction_facts` the already-validated facts. No filesystem, no
+  network, no clock. Every one of the 25 samples is exercised through it.
+
+- **`ExtractionPort` is the single external/LLM I/O boundary**, frozen in the contract. Adapters:
+  `FixtureExtractor` (default, offline), `GroqExtractor` (messages), `VisionExtractor` (images,
+  development-time only).
+
+- **The shell owns all I/O**, in this order:
+
+  ```text
+  load dataset → extraction / fixtures → run_pipeline(dataset, facts, config) → validate → output.csv
+  ```
+
+  `code/main.py` is the only place this sequence lives. *Acceptance test for this decision: if
+  `main.py` contains an `if` statement about finance, the logic is in the wrong place.*
+
 - Calibration parameters live in an injected `config` — **not** a seam, not module state, not globals.
+
+- **No additional architectural seams** are to be introduced unless implementation demonstrates a
+  concrete need. Two is the budget.
 
 ### Modules
 
@@ -251,25 +267,30 @@ structured. The fixture adapter is a **fake**, not a mock: assert on the engine'
 prompt it would have sent.
 
 **Primary test — the golden harness.** `code/eval/harness.py` runs all 25 solved samples through the
-primary seam and prints a **per-column scorecard** (matched/mismatched for each of the eight columns)
+**complete pipeline** and prints a **per-column scorecard** (matched/mismatched for each of the eight columns)
 plus a per-request `request_id | field | expected | actual` table. `--update` regenerates the
 self-golden file for the unlabelled 250, so accepting a deviation is a visible diff in a commit.
 `decision_explanation` is compared structurally and **reported separately** — it never gates the build.
 This is the primary accuracy metric and the calibration objective.
 
-**Unit tests** (stdlib `unittest`; `pytest` is unavailable in this environment) only where a behaviour
-is unreachable from the primary seam:
+**The 25 sample cases must exercise the complete pipeline** — load → extraction → `run_pipeline` →
+validate → CSV — not just the core. An end-to-end pass is the acceptance bar.
 
-- FX conversion at a dated rate
-- each of the seven `linked_event_id` lifecycle patterns, including the disputed-duplicate reservation
-- internal-transfer netting
-- recurrence detection on hand-built monthly, semi-monthly, irregular, and two-occurrence streams
-- same-day ordering under all three candidate conventions
-- month-end clamping (Jan 31 → Feb 28/29) and leap years
-- number formatting for both output conventions
-- installment schedule generation (`first + k × frequency`)
-- the smallest-sufficient change-set selector, including the `reducible_or_stoppable` case where
-  reducing beats stopping
+**Focused unit tests** (stdlib `unittest`; `pytest` is unavailable in this environment) are added
+**only for high-risk mathematical and domain primitives that are hard to diagnose through an
+end-to-end test** — these seven areas, and not as a general habit:
+
+1. **Recurrence detection** — monthly, semi-monthly, irregular, and two-occurrence streams
+2. **Lifecycle resolution** — each of the seven `linked_event_id` patterns, including the
+   disputed-duplicate reservation and internal-transfer netting
+3. **Same-day ordering** — under all three candidate conventions (the convention is unfrozen)
+4. **90-day simulation** — window boundaries, month-end clamping (Jan 31 → Feb 28/29), leap years
+5. **Spending-change pruning** — the biconditional, including the three samples where variants must
+   be expanded, and the `reducible_or_stoppable` case where reducing beats stopping
+6. **Ranking** — lexicographic ordering, fee-inclusive totals, pre-rank pruning, total-order tie-break
+7. **Decimal / rounding behaviour** — exact comparison, output-only quantisation, both number formats
+
+A failure in any of these is otherwise near-impossible to localise from a wrong CSV cell.
 
 **Property tests**: `0 <= amount_safe_to_pay <= requested_amount`; partial plans always sum to
 `requested_amount`; any plan certified safe never breaches the floor when re-simulated.

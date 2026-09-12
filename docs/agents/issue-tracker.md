@@ -1,6 +1,23 @@
-# Issue tracker: GitHub
+# Issue tracker: filesystem (GitHub config retained below, currently unused)
 
-Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
+> ## ⚠ SUPERSEDED for this build
+>
+> **Active tracker: `.scratch/buy-or-wait/`** — one markdown file per ticket under `issues/`, with the
+> board, ownership table and dependency graph in `README.md`.
+>
+> Two verified reasons: **Issues are disabled on this fork** (`gh api` reports
+> `has_issues: false`, so `gh issue create` fails), and for a solo build driven from two local
+> terminals a filesystem tracker has zero network latency and no enable step. The GitHub GraphQL
+> endpoint also timed out once during setup.
+>
+> The GitHub conventions below are kept intact in case the tracker changes; nothing currently uses
+> them. To switch back: `gh repo edit --enable-issues`, then migrate the `.scratch` tickets.
+
+---
+
+## GitHub conventions (retained, not in use)
+
+Issues and specs would live as GitHub issues. Use the `gh` CLI for all operations.
 
 ## Conventions
 

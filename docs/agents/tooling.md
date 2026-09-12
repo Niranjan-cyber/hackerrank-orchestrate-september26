@@ -38,13 +38,16 @@ Companion to `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, `do
 | `claude-api` (Anthropic built-in) | Extraction layer: model ids, pricing, structured outputs, token counting — directly serves the `usage_report.md` requirement | Claude Code |
 | `writing-for-agents` | Editing `AGENTS.md` / `CONTEXT.md` / these docs | Claude Code |
 
-### Recommended install (one)
+### Recommended install: none — recommendation reversed
 
-**`obra/superpowers@verification-before-completion`** (208K installs) — forces evidence-based
-verification before declaring work done. Enters at the **packaging stage**, where the failure modes
-are existential: 250 rows present, exact column order, all enums valid, partial-payment amounts
-summing to `requested_amount`, `evaluation/usage_report.md` present and non-empty. One short file,
-loads once, near-zero token cost.
+**`obra/superpowers@verification-before-completion`** (208K installs) was originally recommended as
+the packaging-stage guard. **Reversed during Grill Round 2, and that reversal stands**: we are
+*building* the thing the skill would check — the deterministic validator (ticket 01) plus the
+packaging contract test (ticket 15) enforce row count, column order, enum validity, plan sums, and
+`usage_report.md` presence mechanically. Adding a process skill to verify a verifier is ceremony with
+21 hours left.
+
+**Net: install nothing.** Override if you'd rather have the belt-and-braces prompt at packaging time.
 
 ### Rejected, with reasons
 

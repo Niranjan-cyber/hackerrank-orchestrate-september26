@@ -366,7 +366,12 @@ Applied by the engine to **every** fact before it may influence anything. A fact
 
 ---
 
-## 9. The interface consumed by the deterministic engine
+## 9. The interface consumed by the SHELL (not by the core)
+
+> **Precision correction.** Under the approved seam, the pure core takes facts as **values**:
+> `run_pipeline(dataset, extraction_facts, config)`. It therefore does **not** consume this port —
+> the **shell** does, calling the port to produce the fact tuple before invoking the core. The port is
+> the shell's single external/LLM boundary; the core has no I/O boundary at all.
 
 ```python
 # code/extraction/port.py — the ONLY boundary the engine sees.
@@ -391,11 +396,13 @@ Guarantees the engine may rely on:
    `GroqExtractor` (messages), `VisionExtractor` (images, development-time). **D29**: a future
    runtime vision provider plugs in here and never becomes a dependency.
 
-**Engine-side obligations** (the other half of the contract):
+**Obligations on the other half of the contract:**
 
-- The engine never reads `messages.csv`, `images.csv`, or any PNG directly — only via this port.
-- The engine applies the §4 authority matrix; the extractor does **not** enforce it.
-- The engine, and only the engine, writes `output.csv`.
+- **Nothing but an adapter** reads `messages.csv`, `images.csv`, or any PNG. The core never sees a
+  file path; the shell reaches them only through this port.
+- The **core** applies the §4 authority matrix to the facts it is handed; the extractor does **not**
+  enforce it.
+- The **validator**, and only the validator, writes `output.csv`.
 
 ---
 

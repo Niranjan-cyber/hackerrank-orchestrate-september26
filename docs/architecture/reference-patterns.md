@@ -119,14 +119,15 @@ All four items below are cheap and load-bearing. Sources are the Python docs.
 - The docs state `decimal` *"is preferred in accounting applications which have strict equality
   invariants"*, and `quantize()` *"is useful for monetary applications that often round results to a
   fixed number of places."* Default context is `prec=28, rounding=ROUND_HALF_EVEN`.
-- **Rules adopted**: set the context **once, in the shell**; define `TWOPLACES = Decimal("0.01")` and
-  quantize at every boundary; **construct from `Decimal(str(x))`, never `Decimal(float)`**.
-- **Directional rounding, stated once and applied consistently**:
-  **`ROUND_DOWN` for `amount_safe_to_pay`** (conservative — never overstate what is safe) and
-  **`ROUND_UP` for projected expenses** (conservative — never understate an outflow).
-  This *supersedes* the earlier blanket "ROUND_HALF_UP everywhere" note: half-even/half-up are
-  statistically neutral, whereas directional rounding is aligned with the floor test we are
-  certifying.
+- **Rules adopted**: set the context **once, in the shell**; **construct from `Decimal(str(x))`,
+  never `Decimal(float)`**.
+- ⚠ **SUPERSEDED — see `CONTEXT.md` D5.** This section previously prescribed *directional* rounding
+  (`ROUND_DOWN` for `amount_safe_to_pay`, `ROUND_UP` for projected expenses). **That was wrong**, and
+  the cross-verification pass reversed it: directional rounding buys **no** safety once floor
+  comparisons run on exact values, while it can miss a graded ground-truth value by a cent.
+- **The rule now in force**: exact `Decimal` arithmetic with **no intermediate rounding**; floor
+  comparisons on exact values; quantize to 2dp **only at output**, `ROUND_HALF_UP`. Rounding is a
+  presentation concern, not a safety one.
 - Source: <https://docs.python.org/3/library/decimal.html>
 
 ### Stable sorting and total order
@@ -218,5 +219,5 @@ Concrete, ordered, and cheap. These are the items to apply the moment implementa
 5. `evaluation/harness.py --update` writing `evaluation/golden_output.csv`; default run prints the
    per-column scorecard.
 6. Validator returns a violations list instead of raising; plans carry a `reasons` tuple.
-7. Decimal context set once in the shell; `ROUND_DOWN` for safe amounts, `ROUND_UP` for projected
-   expenses.
+7. Decimal context set once in the shell; exact arithmetic throughout; quantize **only at output**
+   with `ROUND_HALF_UP` (see the superseding note in §4 — directional rounding was reversed).

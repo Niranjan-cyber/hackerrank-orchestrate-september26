@@ -3,6 +3,20 @@
 Primary-source research for the Buy or Wait? engine. Every entry states what we **borrow** and a
 verdict. Nothing here is adopted merely because it exists.
 
+> ## ⚠ Partially superseded — read these first
+>
+> This file was written before the provider and message-corpus investigations. Three sections are now
+> out of date, and the superseding documents win:
+>
+> | Section here | Superseded by | What changed |
+> |---|---|---|
+> | §3 LLM structured extraction — Anthropic API, models, pricing, the `anthropic` SDK as "the only runtime dependency" | [`docs/investigation/provider-capability.md`](../investigation/provider-capability.md) | **No Anthropic key exists.** The provider is **Groq** (`qwen/qwen3.8-27b`, strict JSON schema verified by live call). Anthropic pricing here is moot. **Dependencies are now zero** — stdlib `urllib` against Groq's REST endpoint, no SDK (`CONTEXT.md` D10). |
+> | §4 Prompt injection — spotlighting delimiters adopted | [`docs/investigation/message-corpus.md`](../investigation/message-corpus.md) §3 | The corpus contains **no model-directed injection** (0 hits for override/imperative/authority patterns). Spotlighting delimiters, prompt-guard classifiers, and `injection_suspected` self-report fields are **CUT**. The closed enum plus the evidence-authority rule are kept. |
+> | Recurrence parameters in §1 | `CONTEXT.md` §14 + ticket 14 | These remain **unfrozen** and are calibration targets, not adopted constants. |
+>
+> The recurrence *ideas*, the vision-extraction mitigations, the BNPL ranking criteria, and the
+> OWASP/architectural framing in §4 all still stand.
+
 Verdict key: **ADOPT** = goes into the build · **CONSIDER** = revisit if time allows ·
 **IGNORE** = looked relevant, is not.
 
@@ -338,7 +352,7 @@ Sources: <https://genai.owasp.org/llmrisk/llm01-prompt-injection/>,
 
 | Package | Verdict |
 |---|---|
-| `anthropic` (MIT) | **ADOPT** — the only runtime dependency |
+| `anthropic` (MIT) | ~~ADOPT~~ → **IGNORE.** Superseded: no Anthropic key exists, and calling Groq's OpenAI-compatible REST endpoint over stdlib `urllib` removes the last dependency. **Zero runtime dependencies** (`CONTEXT.md` D10). |
 | `pandas` | **IGNORE** — 25k rows is trivial for stdlib `csv`; dtype coercion threatens determinism |
 | `rapidfuzz` | **IGNORE** — stdlib `difflib` covers description similarity |
 | `cashflows`, `pycashflow` | **IGNORE** — wrong shape; nothing importable |
