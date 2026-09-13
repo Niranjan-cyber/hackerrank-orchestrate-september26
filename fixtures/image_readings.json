@@ -1,0 +1,263 @@
+{
+  "provider": "opencode",
+  "model": "deepseek-v4.1-flash",
+  "method": "opencode vision, two independent passes per image; the extractor reconciles them and discards on disagreement",
+  "readings": {
+    "image_01": [
+      {
+        "amount": "4365000",
+        "verbatim_amount_string": "IDR 4,365,000",
+        "currency": "IDR",
+        "amount_in_words": "Four Million Three Hundred Sixty Five Thousand Rupiahs",
+        "confidence": "high"
+      },
+      {
+        "amount": "4365000",
+        "verbatim_amount_string": "IDR 4,365,000",
+        "currency": "IDR",
+        "amount_in_words": "Four Million Three Hundred Sixty Five Thousand Rupiahs",
+        "confidence": "high"
+      }
+    ],
+    "image_02": [
+      {
+        "amount": "100000.00",
+        "verbatim_amount_string": "1,00,000.00",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "high"
+      },
+      {
+        "amount": "100000.00",
+        "verbatim_amount_string": "1,00,000.00",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "high"
+      }
+    ],
+    "image_03": [
+      {
+        "amount": "41272.00",
+        "verbatim_amount_string": "41272.00",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "high"
+      },
+      {
+        "amount": "41272.00",
+        "verbatim_amount_string": "41272.00",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "high"
+      }
+    ],
+    "image_04": [
+      {
+        "amount": "2854.00",
+        "verbatim_amount_string": "\u20b92854.00",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "medium"
+      },
+      {
+        "amount": "2854.00",
+        "verbatim_amount_string": "\u20b92854.00",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "medium"
+      }
+    ],
+    "image_05": [
+      {
+        "amount": "704.05",
+        "verbatim_amount_string": "704.05",
+        "currency": "INR",
+        "amount_in_words": "Seven Hundred Four Rupees and Five Paise Only",
+        "confidence": "high"
+      },
+      {
+        "amount": "704.05",
+        "verbatim_amount_string": "704.05",
+        "currency": "INR",
+        "amount_in_words": "Seven Hundred Four Rupees and Five Paise Only",
+        "confidence": "high"
+      }
+    ],
+    "image_06": [
+      {
+        "amount": "1995.00",
+        "verbatim_amount_string": "1995.00",
+        "currency": "INR",
+        "amount_in_words": "One Thousand Nine Hundred And Ninety-Five Rupees And Zero Paisa Only",
+        "confidence": "high"
+      },
+      {
+        "amount": "1995.00",
+        "verbatim_amount_string": "1995.00",
+        "currency": "INR",
+        "amount_in_words": "One Thousand Nine Hundred And Ninety-Five Rupees And Zero Paisa Only",
+        "confidence": "high"
+      }
+    ],
+    "image_07": [
+      {
+        "amount": "8528.10",
+        "verbatim_amount_string": "8528.10",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "medium"
+      },
+      {
+        "amount": "8528.10",
+        "verbatim_amount_string": "8528.10",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "medium"
+      }
+    ],
+    "image_08": [
+      {
+        "amount": "15339.00",
+        "verbatim_amount_string": "15,339.00",
+        "currency": "INR",
+        "amount_in_words": "Rupees Fifteen Thousand Three Hundred Thirty Nine Only",
+        "confidence": "high"
+      },
+      {
+        "amount": "15339.00",
+        "verbatim_amount_string": "15,339.00",
+        "currency": "INR",
+        "amount_in_words": "Rupees Fifteen Thousand Three Hundred Thirty Nine Only",
+        "confidence": "high"
+      }
+    ],
+    "image_09": [
+      {
+        "amount": "723.00",
+        "verbatim_amount_string": "723.00",
+        "currency": "INR",
+        "amount_in_words": "Rupees Seven Hundred Twenty Three Only",
+        "confidence": "high"
+      },
+      {
+        "amount": "723.00",
+        "verbatim_amount_string": "723.00",
+        "currency": "INR",
+        "amount_in_words": "Rupees Seven Hundred Twenty Three Only",
+        "confidence": "high"
+      }
+    ],
+    "image_10": [
+      {
+        "amount": "79679.26",
+        "verbatim_amount_string": "79,679.26",
+        "currency": "INR",
+        "amount_in_words": "Indian Rupee Seventy-Nine Thousand Six Hundred Seventy-Nine and Twenty-Six Paise Only",
+        "confidence": "high"
+      },
+      {
+        "amount": "79679.26",
+        "verbatim_amount_string": "79,679.26",
+        "currency": "INR",
+        "amount_in_words": "Indian Rupee Seventy-Nine Thousand Six Hundred Seventy-Nine and Twenty-Six Paise Only",
+        "confidence": "high"
+      }
+    ],
+    "image_11": [
+      {
+        "amount": "3650.00",
+        "verbatim_amount_string": "3650.00",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "high"
+      },
+      {
+        "amount": "3650.00",
+        "verbatim_amount_string": "3650.00",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "high"
+      }
+    ],
+    "image_12": [
+      {
+        "amount": "33.50",
+        "verbatim_amount_string": "$33.50",
+        "currency": "USD",
+        "amount_in_words": null,
+        "confidence": "high"
+      },
+      {
+        "amount": "33.50",
+        "verbatim_amount_string": "$33.50",
+        "currency": "USD",
+        "amount_in_words": null,
+        "confidence": "high"
+      }
+    ],
+    "image_13": [
+      {
+        "amount": "2298",
+        "verbatim_amount_string": "2,298",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "high"
+      },
+      {
+        "amount": "2298",
+        "verbatim_amount_string": "2,298",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "high"
+      }
+    ],
+    "image_14": [
+      {
+        "amount": "4543.00",
+        "verbatim_amount_string": "4543.00",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "medium"
+      },
+      {
+        "amount": "4543.00",
+        "verbatim_amount_string": "4543.00",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "medium"
+      }
+    ],
+    "image_15": [
+      {
+        "amount": "9968.00",
+        "verbatim_amount_string": "9,968.00",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "high"
+      },
+      {
+        "amount": "9968.00",
+        "verbatim_amount_string": "9,968.00",
+        "currency": "INR",
+        "amount_in_words": null,
+        "confidence": "high"
+      }
+    ],
+    "image_16": [
+      {
+        "amount": "393.22",
+        "verbatim_amount_string": "393.22",
+        "currency": "INR",
+        "amount_in_words": "Three Hundred and Ninety Three Rupees And Twenty Two Paise Only",
+        "confidence": "high"
+      },
+      {
+        "amount": "393.22",
+        "verbatim_amount_string": "393.22",
+        "currency": "INR",
+        "amount_in_words": "Three Hundred and Ninety Three Rupees And Twenty Two Paise Only",
+        "confidence": "high"
+      }
+    ]
+  }
+}

@@ -20,6 +20,7 @@ from pathlib import Path
 from engine.money import money, parse_date
 from engine.types import Dataset, Event, Fact, Request
 
+from .prompts import build_image_fixture_payload
 from .validate import Violation, validate_facts
 
 FIXTURE_PROVIDER = "fixture"
@@ -249,7 +250,15 @@ class FixtureExtractor:
                 return fact
 
         # Linked image exists but fixture is missing: hard fail with the expected key.
-        payload = {"event_id": event_id, "image_id": image_id}
+        # The payload includes the source PNG's content hash, so the expected key is
+        # only recomputable here by reading the same image the recorder read.
+        image_path = self.dataset_dir / "media" / "images" / f"{image_id}.png"
+        image_sha = (
+            hashlib.sha256(image_path.read_bytes()).hexdigest()
+            if image_path.exists()
+            else ""
+        )
+        payload = build_image_fixture_payload(image_id, event_id, image_sha)
         key = fixture_key(
             self.contract_version,
             FIXTURE_PROVIDER,

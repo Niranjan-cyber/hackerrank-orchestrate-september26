@@ -1,0 +1,32 @@
+{
+  "facts": [
+    {
+      "amount": "8528.10",
+      "applies_to_cycles": null,
+      "confidence": "medium",
+      "currency": "INR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T05:33:49.527849+00:00",
+        "fixture_key": "c3559deb1cd054bb",
+        "method": "vision",
+        "model": "deepseek-v4.1-flash",
+        "prompt_version": "image-amount-v1",
+        "provider": "opencode",
+        "self_consistency": "two_call_agree",
+        "source_image_sha256": "f6d30a74355224c0b5cda2d7f96399a7b1a0afe4f9fe59ea048bbecb1a21311e"
+      },
+      "fact_type": "image_amount",
+      "percent_change": null,
+      "related_event_id": "event_3231",
+      "request_id": "request_35",
+      "source_language": "en",
+      "source_type": "merchant",
+      "subject": "image_07",
+      "user_id": "user_35",
+      "verbatim_amount_string": "8528.10",
+      "verbatim_quote": "8528.10"
+    }
+  ]
+}

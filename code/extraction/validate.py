@@ -9,16 +9,15 @@ only guarantees that every returned fact is structurally valid (V1-V13).
 
 from __future__ import annotations
 
-import json
-import re
 from dataclasses import dataclass, replace
-from datetime import date, timedelta
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Iterable
 
-from engine.money import money, parse_date
+from engine.money import money
 from engine.types import CURRENCIES, Dataset, Event, Fact, Request
 
+from .amounts import digit_in_quote
 from .text import normalize_text
 
 CONTRACT_VERSION = "1.0.0"
@@ -127,42 +126,6 @@ class Violation:
     subject: str
     fact_type: str
     detail: str
-
-
-def _digits_of(value: Decimal) -> str:
-    """All digits in a decimal amount, ignoring sign, decimal point and leading zeros."""
-    return re.sub(r"[^0-9]", "", str(value))
-
-
-def _normalize_separators(text: str, currency: str | None) -> str:
-    """Strip grouping separators so IDR '12.500.000' can be matched to '12500000'.
-
-    This is intentionally conservative: remove common grouping characters and spaces.
-    It does not interpret locale.
-    """
-    # IDR uses '.' as thousands separator and no decimal fraction in the corpus.
-    # INR/EUR/USD/ZAR use ',' as thousands separator.
-    return text.replace(".", "").replace(",", "").replace(" ", "").replace("\u00a0", "")
-
-
-def _digit_in_quote(
-    amount: Decimal | None,
-    quote: str,
-    currency: str | None,
-    image_verbatim: str | None = None,
-) -> bool:
-    """V5: every digit of amount appears in the verbatim quote after normalisation."""
-    if amount is None:
-        return True
-    digits = _digits_of(amount)
-    if not digits:
-        return True
-    source = image_verbatim if image_verbatim is not None else quote
-    normalized = _normalize_separators(source, currency)
-    for d in digits:
-        if d not in normalized:
-            return False
-    return True
 
 
 def _parse_amount(raw: str | None) -> Decimal | None:
@@ -437,11 +400,14 @@ def validate_fact(
                 )
             )
 
-    # V5: digit-in-quote.
-    image_verbatim = None
-    if fact.fact_type == "image_amount":
-        image_verbatim = fact.verbatim_amount_string or ""
-    if not _digit_in_quote(amount, fact.verbatim_quote, fact.currency, image_verbatim):
+    # V5: digit-in-quote. For an image fact the source is the printed amount string;
+    # for a message it is the quoted span.
+    quote_source = (
+        fact.verbatim_amount_string or ""
+        if fact.fact_type == "image_amount"
+        else fact.verbatim_quote
+    )
+    if not digit_in_quote(amount, quote_source):
         violations.append(
             Violation(
                 "V5",

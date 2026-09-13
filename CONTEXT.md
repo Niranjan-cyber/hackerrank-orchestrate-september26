@@ -245,6 +245,41 @@ but not recurrence detection, which still skips rows whose CSV `amount` is blank
 `recurrence._historical_events` is ticket 05's surface and would move many rows at once; it is worth
 measuring in ticket 14 rather than folding into this change.
 
+### Settled by ticket 12 (implemented in `code/extraction/vision.py`)
+
+**All 16 blank amounts are now real, from committed fixtures.** No vision key is required at runtime;
+the fixtures are the shipped path (D28), and a runtime provider would plug in behind `VisionClient`
+(D29). The recording was option 2 from `docs/investigation/provider-capability.md` section 3: opencode
+read each PNG in two independent passes and `record_images.py --readings` replayed both through the
+same two-call path the live client uses.
+
+**Separator structure decides, currency breaks the tie.** The corpus contradicts a strict locale rule:
+`image_01` prints an IDR payslip as `IDR 4,365,000` (comma grouping), so "IDR uses '.' as the thousands
+separator" would be off by 10**6. `amounts.parse_printed_amount` therefore reads out the *structure* —
+multiple separators, both kinds at once, or a lone separator before one/two digits are unambiguous —
+and uses the row's currency only for a lone separator before exactly three digits (`1.234` is 1234 for
+rupiah, 1.234 for dollars). `Rp 12.500.000` is still twelve and a half million.
+
+**The number enters as a parsed string, never as model arithmetic.** The model returns both `amount`
+and `verbatim_amount_string`; the engine parses the printed string itself and treats the model's figure
+only as a cross-check (equality plus V5 digit presence), so a transposition is an auditable rejection.
+V5 ignores presentation-only trailing zeros (`2298.00` is 2298); that fix was verified byte-identical
+on the whole message corpus before it was kept.
+
+**In-cap images are never re-encoded.** Only `image_01` (1628px) exceeds the 1568px long-edge cap; the
+other 15 are sent byte-for-byte. Pillow is a lazy, development-time-only import, so the runtime remains
+stdlib-only (D10).
+
+**Cross-checks, measured.** Of the five sample-user images only three sit in settled history (events
+253/1545/1700) so the published outputs cannot discriminate them; the two that move the forecast
+(`request_16`'s rent balance and `request_20`'s telecom bill) are the real end-to-end checks.
+`request_16` still matches the published sample exactly, and deterministic imputation independently
+yields 4,365,000 for `user_03`'s salary — exactly `image_01`'s net pay. All 16 fixtures validate with
+zero image violations. Compared with the same pipeline minus the image facts, exactly two of the 250
+evaluation rows change: `request_64` loses its installment plan (the unpriced 79,679.26 pending grocery
+invoice is now reserved), and `request_73` becomes `affordable_now` (pricing the 3,650 hospital bill
+lets the forecast resolve instead of degrading on an unpriced outflow).
+
 ---
 
 ## 7. 90-day simulation semantics

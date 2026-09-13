@@ -1,0 +1,32 @@
+{
+  "facts": [
+    {
+      "amount": "33.50",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "USD",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T05:33:49.543665+00:00",
+        "fixture_key": "be4486c80b510019",
+        "method": "vision",
+        "model": "deepseek-v4.1-flash",
+        "prompt_version": "image-amount-v1",
+        "provider": "opencode",
+        "self_consistency": "two_call_agree",
+        "source_image_sha256": "e10b0123e66d512d82f6c431fb741053b336627b89b9d9a138071ac6980a14ff"
+      },
+      "fact_type": "image_amount",
+      "percent_change": null,
+      "related_event_id": "event_7307",
+      "request_id": "request_78",
+      "source_language": "en",
+      "source_type": "merchant",
+      "subject": "image_12",
+      "user_id": "user_78",
+      "verbatim_amount_string": "$33.50",
+      "verbatim_quote": "$33.50"
+    }
+  ]
+}

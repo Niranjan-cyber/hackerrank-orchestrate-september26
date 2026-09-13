@@ -19,8 +19,8 @@ boxes and noting completion at the top. Do not edit a ticket owned by the other 
 01 tracer bullet (no blockers)                    <- THE ONLY TICKET UNBLOCKED AT t=0
  |-- 02 scorecard harness            [OpenCode]
  |-- 03 extraction port + fixtures   [OpenCode]
- |    |-- 11 Groq message extraction [OpenCode]  <- only text API ticket
- |    |-- 12 vision blank amounts    [OpenCode]  <- only vision ticket
+ |    |-- 11 Groq message extraction [OpenCode]  <- only text API ticket  DONE
+ |    |-- 12 vision blank amounts    [OpenCode]  <- only vision ticket   DONE
  |-- 04 FX + lifecycle + cash state  [Claude]
       |-- 05 recurrence + projection [Claude]
            |-- 06 simulator + safe amount + earliest date [Claude]
