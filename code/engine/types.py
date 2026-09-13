@@ -203,6 +203,16 @@ class Config:
     quarterly_date_tolerance_days: int = 7
     annual_date_tolerance_days: int = 10
     variable_spend_categories: tuple[str, ...] = ("groceries", "transport", "dining")
+    # Which event categories are income. Evidence (ticket 10) amends "the projected
+    # income stream", and this names it rather than leaving a literal in that module.
+    # `salary` and `windfall` are the only two credit categories in the data, and a
+    # windfall is never a stream, so `salary` alone is the income stream.
+    income_categories: tuple[str, ...] = ("salary",)
+    # How a blank `amount` is imputed when no receipt image resolved it, ticket 10/14.
+    # Unfrozen: it measurably moves two of the 25 samples, so ticket 14 sweeps it.
+    # `none` leaves the row unpriced, which degrades that request conservatively - it
+    # is never a way of treating a blank amount as zero.
+    blank_amount_estimator: str = "median_same_category"
     protected_two_occurrence_project: bool = True
     description_prefix_tokens: int = 3
 

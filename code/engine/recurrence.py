@@ -44,6 +44,58 @@ def default_horizon_end(request: Request, config: Config) -> date:
     return request.request_date + timedelta(days=config.horizon_days)
 
 
+def monthly_occurrences(
+    day_of_month: int,
+    start: date,
+    end: date,
+    direction: str,
+) -> tuple[date, ...]:
+    """Every monthly occurrence of `day_of_month` inside `[start, end]`, inclusive.
+
+    The one rule for *where* a monthly occurrence lands, and therefore public: ticket
+    05 projects a detected stream with it, and ticket 10 creates a stream from a
+    confirmed salary fact with it, so the two cannot drift apart. Two adjustments, in
+    this order, both conservative:
+
+      * a day the month does not have clamps to that month's last day, so a 31st
+        commitment still lands in February rather than spilling into March;
+      * a weekend date moves to the nearest weekday - a debit forward, a credit back -
+        so money leaves no earlier than stated and arrives no later.
+
+    The walk starts a month early because the roll can carry the previous month's
+    occurrence into the range (a Sunday the 30th of November becomes the 1st of
+    December), and a candidate that rolls out of the range is simply dropped.
+    """
+    occurrences: list[date] = []
+    cursor = _month_start(start)
+    cursor = _previous_month_start(cursor)
+    last = _month_start(end)
+    while cursor <= last:
+        candidate = _roll_weekend(
+            _clamped_date(cursor.year, cursor.month, day_of_month), direction
+        )
+        if start <= candidate <= end:
+            occurrences.append(candidate)
+        cursor = _next_month_start(cursor)
+    return tuple(sorted(set(occurrences)))
+
+
+def _month_start(value: date) -> date:
+    return date(value.year, value.month, 1)
+
+
+def _next_month_start(month_start: date) -> date:
+    if month_start.month == 12:
+        return date(month_start.year + 1, 1, 1)
+    return date(month_start.year, month_start.month + 1, 1)
+
+
+def _previous_month_start(month_start: date) -> date:
+    if month_start.month == 1:
+        return date(month_start.year - 1, 12, 1)
+    return date(month_start.year, month_start.month - 1, 1)
+
+
 def detect_streams(
     position: CashPosition,
     events: tuple[Event, ...],
@@ -431,54 +483,37 @@ def _project_stream(
         return []
 
     effects: list[CashEffect] = []
-    year, month = request_date.year, request_date.month
-    # Move to the first candidate month; if request_date is before the stream day,
-    # the same month may still produce a future occurrence.
-    current = date(year, month, 1)
     event_type = stream.stream_key[2]
-
-    while current <= horizon_end:
-        candidate = _clamped_date(current.year, current.month, stream.day_of_month)
-        candidate = _roll_weekend(candidate, stream.direction)
-        if candidate > request_date and candidate <= horizon_end:
-            if (
-                stream.category,
-                stream.direction,
-                event_type,
-                candidate,
-            ) not in explicit:
-                state = (
-                    PROJECTED_CREDIT
-                    if stream.direction == "credit"
-                    else PROJECTED_DEBIT
-                )
-                reason = (
-                    PROJECTED_RECURRING_INCOME
-                    if stream.direction == "credit"
-                    else (
-                        PROJECTED_VARIABLE_SPENDING
-                        if stream.is_variable
-                        else PROJECTED_RECURRING_EXPENSE
-                    )
-                )
-                effects.append(
-                    CashEffect(
-                        event_id=f"projected:{stream.latest_event_id}:{candidate.isoformat()}",
-                        state=state,
-                        cash_date=candidate,
-                        amount_home=stream.latest_amount,
-                        reason_code=reason,
-                        category=stream.category,
-                        flexibility=stream.flexibility,
-                        source_event_id=stream.latest_event_id,
-                    )
-                )
-        # advance one month
-        if month == 12:
-            year, month = year + 1, 1
-        else:
-            month += 1
-        current = date(year, month, 1)
+    state = PROJECTED_CREDIT if stream.direction == "credit" else PROJECTED_DEBIT
+    reason = (
+        PROJECTED_RECURRING_INCOME
+        if stream.direction == "credit"
+        else (
+            PROJECTED_VARIABLE_SPENDING
+            if stream.is_variable
+            else PROJECTED_RECURRING_EXPENSE
+        )
+    )
+    for candidate in monthly_occurrences(
+        stream.day_of_month,
+        request_date + timedelta(days=1),
+        horizon_end,
+        stream.direction,
+    ):
+        if (stream.category, stream.direction, event_type, candidate) in explicit:
+            continue
+        effects.append(
+            CashEffect(
+                event_id=f"projected:{stream.latest_event_id}:{candidate.isoformat()}",
+                state=state,
+                cash_date=candidate,
+                amount_home=stream.latest_amount,
+                reason_code=reason,
+                category=stream.category,
+                flexibility=stream.flexibility,
+                source_event_id=stream.latest_event_id,
+            )
+        )
     return effects
 
 

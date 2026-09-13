@@ -192,6 +192,59 @@ Injection defences, in order of importance:
 4. **Never** let extracted free text reach `decision_explanation` verbatim — template it from engine
    state, or an injection propagates into a graded column.
 
+### Settled by ticket 10 (implemented in `code/engine/evidence.py`)
+
+**The authority matrix is one directional measurement, not 25 per-type permissions.** D31 says
+evidence may always move the forecast conservatively and may move it optimistically only for a
+confirmed salary fact. That is enforced by *costing* each proposed amendment: the candidate balance
+series is compared with the current one at every date in the window, and an amendment that leaves
+more cash available at any point is accepted only from `salary_first`, `salary_increase` or
+`one_time_arrears` passing all five section-4 conditions. Three consequences fall out with no rule of
+their own — a `salary_temporary` quoted *above* the permanent stream is refused, a
+`recurring_expense_increase` that would *lower* an expense is refused, and an `internal_transfer`
+whose netting would remove only the debit leg is refused. The comparison is pointwise rather than on a
+single summary figure because `earliest_date_for_full_payment` reads the series, not its minimum: a
+credit added late in the window can leave `amount_safe_to_pay` untouched and still pull the earliest
+date forward.
+
+**A fact may only amend what it names.** `Fact` has no category field, so a
+`recurring_expense_increase` or `internal_transfer` with no `related_event_id` is confirm-only
+(`EVIDENCE_TARGET_UNRESOLVED`). The alternative — matching the target category out of the message
+text — would let untrusted prose choose which commitment gets changed, which is exactly what the
+trust boundary above forbids. **This affects real corpus messages**: all 7 "renewed lease increases
+monthly rent by 12%" messages and all 6 internal-transfer messages name no event row today, so they
+are structurally inert until ticket 11 sets `related_event_id` to the stream occurrence they amend.
+
+**`percent_change` is in percentage points.** The seven rent messages say "by 12%", so `12` means
+12% and the raised occurrence is the old one × 1.12, held to the currency's 2dp scale like every
+other modelled amount.
+
+**A stated date is never weekend-rolled; an inferred one is.** "The confirmed credit date is
+2026-01-15" is a fact about that date, so an evidence-created stream lands its *first* credit exactly
+there and every later occurrence through `recurrence.monthly_occurrences` — the same placement rule
+ticket 05 projects with. Rolling the stated date back off a weekend would both contradict the source
+and count the money early; for `one_time_arrears` it is left unrolled for the same reason.
+
+**`income_ended` and `employment_ended` coincide inside a fixed window.** The contract calls the
+second the stronger, permanent form, but nothing can restart a stopped stream within 90 days, so
+"stopped from the effective date" is the whole of both. Payroll dated before that date stands: it was
+earned and paid.
+
+**Blank amounts: image, then median of the same category, then unpriced — never zero.** The
+resolution runs *before* classification, because a blank amount decides how its own row is
+classified, and reaches `cash.classify_event` through the `amount_overrides` seam. Measured effect:
+of the 16 blank-amount events only **4** are open or future and so actually need a price; the other
+12 are settled history already inside `current_available_balance`. Imputation prices 3 of the 4 and
+turns three degenerate `amount_safe_to_pay = 0` rows into real forecasts (`request_16`, now matching
+the published sample exactly; `request_20`; `request_64`). The fourth, `user_73`, has no settled
+healthcare history in its lookback window, so it stays unpriced and that one request degrades
+conservatively — which is the designed fallback, not a failure.
+
+**Known boundary, deliberately not crossed here:** a resolved blank amount feeds cash classification
+but not recurrence detection, which still skips rows whose CSV `amount` is blank. Changing
+`recurrence._historical_events` is ticket 05's surface and would move many rows at once; it is worth
+measuring in ticket 14 rather than folding into this change.
+
 ---
 
 ## 7. 90-day simulation semantics

@@ -15,13 +15,11 @@ body of `_build_decision` without touching anything around it. Implemented so fa
   06  the 90-day simulation, amount_safe_to_pay, earliest date   (committed)
   07  candidate plans and lexicographic ranking                  (committed)
   08  spending changes and the pruning rule                      (committed)
-  09  reason codes, rendered explanations and the trace ledger   (this change)
+  09  reason codes, rendered explanations and the trace ledger   (committed)
+  10  evidence authority, conflict precedence, blank amounts       (this change)
 
-Still to come, and deliberately absent here:
-
-  10  evidence authority and conflict precedence - `extraction_facts` is threaded all
-      the way to `_build_decision` but not yet read there; every row today is decided
-      from the dataset alone.
+Every ticket is now implemented; `extraction_facts` is read, and a row is decided from
+the dataset *plus* whatever the evidence layer had the authority to change.
 """
 
 from __future__ import annotations
@@ -36,6 +34,7 @@ from .cash import (
     UnresolvedAmountError,
     cash_position,
 )
+from .evidence import apply_evidence, resolve_blank_amounts
 from .money import ZERO, format_explanation_amount
 from .plans import Plan, best_plan, candidate_plans, required_horizon_end
 from .recurrence import default_horizon_end, detect_streams, with_projections
@@ -105,9 +104,7 @@ def trace_request(
     per-request trace is asked for occasionally, not on every run, and `_build_decision`
     is pure and cheap for one request.
     """
-    request = next(
-        (r for r in dataset.requests if r.request_id == request_id), None
-    )
+    request = next((r for r in dataset.requests if r.request_id == request_id), None)
     if request is None:
         raise ValueError(f"no such request: {request_id}")
 
@@ -161,6 +158,16 @@ def _build_decision(
 ) -> _Decision:
     profile = dataset.profiles[request.user_id]
     reasons: list[Reason] = []
+    events = dataset.events_by_user.get(request.user_id, ())
+
+    # Ticket 10, first half: price the blank amounts *before* anything is classified,
+    # because a blank amount decides how its own row is classified. The receipt image
+    # first, then deterministic imputation; never zero, and never a repair of a figure
+    # the evidence did not supply.
+    blanks = resolve_blank_amounts(
+        events, facts, request, profile, config, dataset.rates
+    )
+    reasons.extend(blanks.reasons)
 
     # Ticket 04: the real cash position - every event row classified, foreign amounts
     # converted at their dated rate, lifecycle resolved. Ticket 05 layers inferred
@@ -168,8 +175,9 @@ def _build_decision(
     position = cash_position(
         request,
         profile,
-        dataset.events_by_user.get(request.user_id, ()),
+        events,
         dataset.rates,
+        blanks.overrides,
     )
 
     # Ticket 05: layer inferred recurring streams onto the cash position. Ticket 06's
@@ -188,7 +196,6 @@ def _build_decision(
     needed = required_horizon_end(request, profile, options, config)
     if needed is not None and needed > horizon:
         horizon = needed
-    events = dataset.events_by_user.get(request.user_id, ())
     # Detected once and used twice: ticket 05 projects the streams forward, and ticket
     # 08 needs the streams themselves, because only an event that belongs to one may
     # be cited as a spending change.
@@ -203,6 +210,23 @@ def _build_decision(
         horizon_end=horizon,
         streams=streams,
     )
+
+    # --- Ticket 10, second half: evidence amends the projections -------------------
+    # Here rather than earlier because every amendment is expressed against projected
+    # occurrences, and here rather than later because the simulator must see the
+    # amended streams. A fact may always make the forecast more conservative; it may
+    # make it less conservative only when it is a confirmed employer salary passing all
+    # five authority conditions, which is what keeps the scam traps inert.
+    #
+    # `streams` above is deliberately *not* re-derived from the amended position:
+    # ticket 08 measures a spending change on the dataset event it cites, and a
+    # commitment the user may stop is a commitment the dataset recorded, not one
+    # evidence inferred.
+    applied = apply_evidence(
+        position, facts, request, profile, config, events, dataset.rates
+    )
+    position = applied.position
+    reasons.extend(applied.reasons)
 
     # --- Ticket 06: simulate the fixed 90-day window ------------------------------
     reasons.append(
@@ -401,9 +425,7 @@ def _explain_wait(request, profile, earliest, reasons: Sequence[Reason]) -> str:
     )
 
 
-def _explain_not_recommended(
-    request, profile, safe, reasons: Sequence[Reason]
-) -> str:
+def _explain_not_recommended(request, profile, safe, reasons: Sequence[Reason]) -> str:
     return (
         f"Paying {profile.home_currency} "
         f"{format_explanation_amount(request.requested_amount)} is not safe on "
