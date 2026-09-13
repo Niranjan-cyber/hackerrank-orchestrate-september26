@@ -161,33 +161,70 @@ class Reason:
 
 @dataclass(frozen=True, slots=True)
 class Config:
-    """Injected knobs. Everything the calibration block may sweep lives here.
+    """Injected knobs. No engine module may inline any of them as a literal.
 
-    These are NOT frozen decisions - ticket 14 settles the values. No engine module
-    may inline any of them as a literal.
+    **The seven calibration parameters are FROZEN as of 2026-09-13** (ticket 14). They
+    are `lookback_days`, `min_occurrences`, `variable_spend_estimator`,
+    `project_income_beyond_confirmed`, `variable_spend_shape`,
+    `variable_spend_placement` and `same_day_ordering`. Their values were settled by
+    measurement against the 25 solved samples and are not to be touched again: the
+    evidence, the sweep and the freeze are recorded in
+    `docs/investigation/calibration.md`, and `engine/tests/test_frozen_calibration.py`
+    fails if one moves. The remaining fields were never in the block's scope.
     """
 
     # simulation
     horizon_days: int = 90
-    same_day_ordering: str = "debits_credits_payment"  # unfrozen: ticket 06/14
+    # FROZEN (ticket 14). The samples do not separate this from `credits_debits_payment`
+    # on any discrete cell - only five `amount_safe_to_pay` values move - but the
+    # published figure is closer under debits-first on four of those five, and moving
+    # the payment to the front of the day costs six `earliest_date` matches outright.
+    same_day_ordering: str = "debits_credits_payment"
 
-    # recurrence detection - all unfrozen, ticket 05/14
-    lookback_days: int = 180
-    min_occurrences: int = 3
+    # recurrence detection. `lookback_days` and `min_occurrences` are FROZEN (ticket
+    # 14) and move together: a 90-day window holds at most three monthly occurrences,
+    # so requiring three is nearly unsatisfiable inside it and requiring two is the
+    # matching threshold. The pair is worth +11 discrete matches on the 25 samples
+    # against the 180/3 they replace.
+    lookback_days: int = 90
+    min_occurrences: int = 2
     amount_tolerance_pct: Decimal = Decimal("0.05")
     amount_tolerance_abs: Decimal = Decimal("5")
     description_similarity: Decimal = Decimal("0.85")
+    # FROZEN (ticket 14) at the shipped default. Every estimator ties at the frozen
+    # optimum, so the score does not choose; `max_median3_mean6` is kept because it is
+    # the most conservative of the four - it never forecasts less than either of the
+    # two it is the maximum of.
     variable_spend_estimator: str = "max_median3_mean6"
+    # FROZEN (ticket 14). Not a live choice: switching it off costs 25 discrete matches
+    # on its own, more than every other axis combined can recover.
     project_income_beyond_confirmed: bool = True
+    # How a variable-spend month is shaped once its total is estimated, ticket 05/14.
+    # `monthly_total` puts the whole month on one day; `individual_events` splits the
+    # *same* total across the observed days-of-month in proportion to their historical
+    # share, so the two shapes differ only in placement within the month.
+    # FROZEN (ticket 14) at `individual_events`, the single largest win in the block
+    # (+8 discrete on its own). One lump on one day forecast whole weeks of zero
+    # variable spend, which mis-timed both the squeeze and the saving that answers it.
+    variable_spend_shape: str = "individual_events"
+    # Which observed day-of-month a `monthly_total` lands on, ticket 05/14. `earliest`
+    # is conservative for the debit itself but makes a matching *saving* arrive as late
+    # as it can (CONTEXT.md section 9, sample 11), which is why ticket 14 sweeps it.
+    # FROZEN (ticket 14) at the shipped default. Under `individual_events` it applies
+    # only to the degenerate all-zero-history case, and all three values tie.
+    variable_spend_placement: str = "earliest"
 
     # plan eligibility, ticket 07/14. Both encode how hard a gate
-    # `desired_completion_date` is. `problem_statement.md:180` states the plan "must
+    # `desired_completion_date` is. Never in the calibration block's scope: ticket 14
+    # was limited to the seven axes named in this class's docstring, and these two
+    # encode a *reading of the contract*, which is not something a sample score should
+    # settle. `problem_statement.md:180` states the plan "must
     # complete the request by desired_completion_date", but criterion 1 of the ranking
     # at line 191 is *also* "complete the full request by desired_completion_date" -
     # which is dead weight if completion is a hard gate on every method. CONTEXT.md
     # section 8 resolves it the only way that keeps both lines live: the two methods
     # the problem statement gates explicitly stay gated, and `wait` is generated even
-    # when it lands late so that level 1 has something to decide. Unfrozen: ticket 14.
+    # when it lands late so that level 1 has something to decide.
     installments_must_complete_by_deadline: bool = True
     wait_must_complete_by_deadline: bool = False
 
@@ -208,10 +245,12 @@ class Config:
     # `salary` and `windfall` are the only two credit categories in the data, and a
     # windfall is never a stream, so `salary` alone is the income stream.
     income_categories: tuple[str, ...] = ("salary",)
-    # How a blank `amount` is imputed when no receipt image resolved it, ticket 10/14.
-    # Unfrozen: it measurably moves two of the 25 samples, so ticket 14 sweeps it.
-    # `none` leaves the row unpriced, which degrades that request conservatively - it
-    # is never a way of treating a blank amount as zero.
+    # How a blank `amount` is imputed when no receipt image resolved it, ticket 10.
+    # Never in the calibration block's scope - ticket 14 was limited to the seven axes
+    # named in this class's docstring, and this one is settled by the problem
+    # statement's "never zero" rule rather than by a sample score. `none` leaves the
+    # row unpriced, which degrades that request conservatively - it is never a way of
+    # treating a blank amount as zero.
     blank_amount_estimator: str = "median_same_category"
     protected_two_occurrence_project: bool = True
     description_prefix_tokens: int = 3

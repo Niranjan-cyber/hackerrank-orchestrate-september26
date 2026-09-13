@@ -67,6 +67,32 @@ def changes_for(events, profile, request=None, config=None):
     )
 
 
+class DuplicateCitationTest(unittest.TestCase):
+    """One event may be cited at most once per action, whatever the stream shape.
+
+    Under the frozen `individual_events` shape a variable category becomes one stream
+    per observed day-of-month, and every one of those slots carries the same
+    `latest_event_id` - the category's most recent settled row. Emitting a candidate
+    per slot would let a three-change budget be spent citing one event three times,
+    and would publish `stop:event_x|stop:event_x`.
+    """
+
+    def test_a_variable_category_split_across_days_is_cited_once(self):
+        # Dining on the 3rd and the 20th of three months: one category, one citable
+        # event, and under `individual_events` two projected slots.
+        events = monthly(
+            "d_a", category="dining", flexibility="stoppable", amount="40", day="03"
+        ) + monthly(
+            "d_b", category="dining", flexibility="stoppable", amount="60", day="20"
+        )
+        profile = make_profile(stoppable_categories=("dining",))
+
+        changes = changes_for(events, profile)
+
+        self.assertEqual([c.action for c in changes], ["stop"])
+        self.assertEqual(len({(c.action, c.event_id) for c in changes}), len(changes))
+
+
 class EligibilityTest(unittest.TestCase):
     """Only events the user has actually permitted may be changed."""
 
@@ -155,13 +181,18 @@ class EligibilityTest(unittest.TestCase):
         self.assertEqual(changes_for(events, profile), ())
 
     def test_an_event_outside_a_detected_stream_is_not_changeable(self):
-        """Two occurrences is below `min_occurrences`, so no stream, so no change."""
+        """One occurrence is below `min_occurrences`, so no stream, so no change.
+
+        One, not two: ticket 14 froze the threshold at 2, so a pair is now a stream.
+        The rule under test is unchanged - only the smallest history that still falls
+        below the shipped threshold.
+        """
         events = monthly(
             "o",
             category="streaming",
             flexibility="stoppable",
             amount="19",
-            months=("2024-12", "2025-01"),
+            months=("2025-01",),
         )
         profile = make_profile(stoppable_categories=("streaming",))
 
@@ -375,6 +406,75 @@ class ApplicationTest(unittest.TestCase):
         changed = apply_changes(self.position, (reduce,))
 
         self.assertEqual(self._projected(changed, "event_d_2"), ())
+
+    def test_a_saving_is_credited_once_a_month_however_many_slots_the_month_has(self):
+        """The saving is a *monthly* quantity, not a per-effect one.
+
+        Under the frozen `individual_events` shape a variable category is split into
+        one projected slot per observed day-of-month, all carrying the same
+        `source_event_id`. Subtracting the whole saving from each slot would credit it
+        once per slot - and the ledger certifies plans against the result, so the
+        over-credit runs in the unsafe direction.
+        """
+        # Dining on the 8th and the 20th: 60 and 20 a month, so a 80/month forecast
+        # split across two slots. A reduce_to worth 50 must remove 50 from the month,
+        # not 50 from each slot.
+        events = (
+            monthly("s", category="streaming", flexibility="stoppable", amount="19")
+            + monthly(
+                "d",
+                category="dining",
+                flexibility="reducible",
+                amount="60",
+                minimum="10",
+                day="08",
+            )
+            + monthly(
+                "d2",
+                category="dining",
+                flexibility="reducible",
+                amount="20",
+                minimum="10",
+                day="20",
+            )
+        )
+        position = with_projections(
+            cash_position(self.request, self.profile, events, {}),
+            events,
+            self.request,
+            self.profile,
+            self.config,
+            {},
+        )
+        dining = tuple(
+            effect
+            for effect in position.projected_debits
+            if effect.category == "dining"
+        )
+        self.assertGreater(len({e.cash_date.day for e in dining}), 1)
+        cited = dining[0].source_event_id
+
+        changed = apply_changes(position, (change(cited, "reduce_to", "50", "10"),))
+
+        by_month = {}
+        for effect in changed.projected_debits:
+            if effect.category != "dining":
+                continue
+            key = (effect.cash_date.year, effect.cash_date.month)
+            by_month[key] = by_month.get(key, Decimal("0")) + effect.amount_home
+        before_by_month = {}
+        for effect in dining:
+            key = (effect.cash_date.year, effect.cash_date.month)
+            before_by_month[key] = (
+                before_by_month.get(key, Decimal("0")) + effect.amount_home
+            )
+        self.assertTrue(by_month)
+        for key, before in before_by_month.items():
+            self.assertEqual(
+                by_month.get(key, Decimal("0")),
+                before - Decimal("50"),
+                f"month {key} fell by more than the saving",
+            )
 
     def test_the_opening_balance_and_floor_are_unchanged(self):
         changed = apply_changes(self.position, (change("event_s_2", "stop", "19"),))

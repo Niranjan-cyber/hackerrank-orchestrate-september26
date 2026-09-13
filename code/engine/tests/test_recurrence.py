@@ -17,8 +17,6 @@ from decimal import Decimal
 from engine.cash import (
     PROJECTED_CREDIT,
     PROJECTED_DEBIT,
-    EXPECTED_CREDIT,
-    RESERVED_DEBIT,
     cash_position,
 )
 from engine.recurrence import (
@@ -261,6 +259,12 @@ class FixedStreamDetectionTest(unittest.TestCase):
         )
 
     def test_two_occurrences_ignored_for_non_protected_category(self):
+        """The carve-out is for *protected* categories only.
+
+        Pinned at `min_occurrences=3` because the rule is only observable above the
+        frozen threshold of 2 (ticket 14), at which two occurrences are a stream in
+        every category and `protected_two_occurrence_project` never fires.
+        """
         events = (
             make_event(
                 event_id="shop_1",
@@ -282,7 +286,9 @@ class FixedStreamDetectionTest(unittest.TestCase):
         request = make_request(request_date="2025-02-01")
         profile = make_profile(balance="10000")
         position = cash_position(request, profile, events, {})
-        projected = projected_effects(position, events, request, profile, Config())
+        projected = projected_effects(
+            position, events, request, profile, Config(min_occurrences=3)
+        )
 
         self.assertEqual(projected, ())
 
@@ -709,6 +715,322 @@ class VariableSpendTest(unittest.TestCase):
         self.assertEqual(amounts_last, [Decimal("200"), Decimal("200"), Decimal("200")])
 
 
+class VariableSpendPlacementTest(unittest.TestCase):
+    """Where in the month a whole-month variable forecast lands.
+
+    `variable_spend_placement` shapes the `monthly_total` lump, so every case here
+    names that shape: ticket 14 froze the default at `individual_events`, under which
+    a month is split across its observed days and there is no single lump to place.
+
+    Days 7, 14 and 21 are weekdays in every projected month (Feb-May 2025), so the
+    weekend roll is a no-op and the asserted dates are plain calendar facts.
+    """
+
+    HISTORY = (("2024-11-07", 7), ("2024-12-14", 14), ("2025-01-21", 21))
+
+    def _projected_dates(self, placement: str):
+        events = tuple(
+            make_event(
+                event_id=f"g{day}",
+                category="groceries",
+                amount="100",
+                settlement_date=settled_on,
+                status="settled",
+            )
+            for settled_on, day in self.HISTORY
+        )
+        request = make_request(request_date="2025-02-01")
+        profile = make_profile(balance="10000")
+        position = cash_position(request, profile, events, {})
+        projected = projected_effects(
+            position,
+            events,
+            request,
+            profile,
+            Config(
+                variable_spend_shape="monthly_total",
+                variable_spend_placement=placement,
+            ),
+        )
+        return [e.cash_date for e in projected]
+
+    def test_earliest_observed_day_is_the_default_placement(self):
+        self.assertEqual(
+            self._projected_dates("earliest"),
+            [date(2025, 2, 7), date(2025, 3, 7), date(2025, 4, 7)],
+        )
+        self.assertEqual(Config().variable_spend_placement, "earliest")
+
+    def test_median_observed_day_places_the_total_mid_month(self):
+        self.assertEqual(
+            self._projected_dates("median"),
+            [date(2025, 2, 14), date(2025, 3, 14), date(2025, 4, 14)],
+        )
+
+    def test_latest_observed_day_places_the_total_late(self):
+        self.assertEqual(
+            self._projected_dates("latest"),
+            [date(2025, 2, 21), date(2025, 3, 21), date(2025, 4, 21)],
+        )
+
+    def test_an_unknown_placement_is_refused_rather_than_silently_defaulted(self):
+        with self.assertRaises(ValueError):
+            self._projected_dates("whenever")
+
+
+class VariableSpendShapeTest(unittest.TestCase):
+    """Ticket 14 sweeps one monthly lump against per-day individual events.
+
+    Both shapes forecast the *same* monthly total, so the sweep isolates placement
+    within the month rather than confounding it with a different amount. History is
+    300 on the 7th and 100 on the 21st for three months: the estimator's monthly
+    total is 400, and the day-of-month shares are 900/1200 and 300/1200 of it.
+    """
+
+    def _events(self):
+        rows = []
+        for month, (day7, day21) in (
+            ("2024-11", ("300", "100")),
+            ("2024-12", ("300", "100")),
+            ("2025-01", ("300", "100")),
+        ):
+            rows.append(
+                make_event(
+                    event_id=f"g{month}a",
+                    category="groceries",
+                    amount=day7,
+                    settlement_date=f"{month}-07",
+                    status="settled",
+                )
+            )
+            rows.append(
+                make_event(
+                    event_id=f"g{month}b",
+                    category="groceries",
+                    amount=day21,
+                    settlement_date=f"{month}-21",
+                    status="settled",
+                )
+            )
+        return tuple(rows)
+
+    def _projected(self, shape: str):
+        events = self._events()
+        request = make_request(request_date="2025-02-01")
+        profile = make_profile(balance="10000")
+        position = cash_position(request, profile, events, {})
+        projected = projected_effects(
+            position,
+            events,
+            request,
+            profile,
+            Config(variable_spend_shape=shape),
+        )
+        return [(e.cash_date, e.amount_home) for e in projected]
+
+    def test_monthly_total_shape_places_the_whole_month_on_one_day(self):
+        self.assertEqual(
+            self._projected("monthly_total"),
+            [
+                (date(2025, 2, 7), Decimal("400.00")),
+                (date(2025, 3, 7), Decimal("400.00")),
+                (date(2025, 4, 7), Decimal("400.00")),
+            ],
+        )
+
+    def test_individual_events_shape_splits_the_same_total_across_observed_days(self):
+        self.assertEqual(
+            self._projected("individual_events"),
+            [
+                (date(2025, 2, 7), Decimal("300.00")),
+                (date(2025, 2, 21), Decimal("100.00")),
+                (date(2025, 3, 7), Decimal("300.00")),
+                (date(2025, 3, 21), Decimal("100.00")),
+                (date(2025, 4, 7), Decimal("300.00")),
+                (date(2025, 4, 21), Decimal("100.00")),
+            ],
+        )
+
+    def test_both_shapes_forecast_the_same_monthly_total(self):
+        lump = sum(amount for _, amount in self._projected("monthly_total"))
+        split = sum(amount for _, amount in self._projected("individual_events"))
+        self.assertEqual(lump, split)
+
+    def test_an_unknown_shape_is_refused_rather_than_silently_defaulted(self):
+        with self.assertRaises(ValueError):
+            self._projected("whatever")
+
+
+class VariableSplitInvariantTest(unittest.TestCase):
+    """Splitting a month must never manufacture a credit or lose the total."""
+
+    # Found by randomized search over the real projection path. The earliest day
+    # carries a hundredth against months whose totals differ enough that the
+    # estimator's monthly total is not the observed sum, so every later day's share
+    # rounds up and the remainder left for the 2nd goes below zero.
+    NEGATIVE_REMAINDER_HISTORY = {
+        10: (
+            (2, "0.01"),
+            (5, "250.00"),
+            (9, "0.02"),
+            (17, "1.11"),
+            (24, "13.33"),
+            (25, "99.99"),
+        ),
+        11: (
+            (2, "0.01"),
+            (5, "250.00"),
+            (9, "99.99"),
+            (17, "0.03"),
+            (24, "250.00"),
+            (25, "0.02"),
+        ),
+        12: (
+            (2, "0.02"),
+            (5, "1.11"),
+            (9, "99.99"),
+            (17, "0.02"),
+            (24, "99.99"),
+            (25, "0.03"),
+        ),
+    }
+
+    def _projected(self, per_month):
+        events = tuple(
+            make_event(
+                event_id=f"g{month}_{day}",
+                category="groceries",
+                amount=amount,
+                settlement_date=f"2024-{month:02d}-{day:02d}",
+                status="settled",
+            )
+            for month, rows in per_month.items()
+            for day, amount in rows
+        )
+        request = make_request(request_date="2025-01-01")
+        profile = make_profile(balance="10000")
+        position = cash_position(request, profile, events, {})
+        return projected_effects(position, events, request, profile, Config())
+
+    def test_no_slot_is_ever_negative(self):
+        """A share rounding to nothing must not push the remainder below zero.
+
+        The earliest slot carries the rounding remainder, so a tiny share on that day
+        against later days that all round up is the case that can drive it negative -
+        and a `PROJECTED_DEBIT` with a negative amount is a phantom credit in the
+        ledger, money the user never had.
+        """
+        projected = self._projected(self.NEGATIVE_REMAINDER_HISTORY)
+        self.assertTrue(projected)
+        for effect in projected:
+            self.assertGreaterEqual(
+                effect.amount_home,
+                Decimal("0"),
+                f"{effect.event_id} projects {effect.amount_home}",
+            )
+
+    def test_an_unknown_placement_is_refused_under_the_shipped_shape_too(self):
+        """The guard must not be reachable only from the shape that no longer ships."""
+        events = tuple(
+            make_event(
+                event_id=f"g{index}",
+                category="groceries",
+                amount="100",
+                settlement_date=settled_on,
+                status="settled",
+            )
+            for index, settled_on in enumerate(
+                ("2024-11-07", "2024-12-07", "2025-01-07")
+            )
+        )
+        request = make_request(request_date="2025-02-01")
+        profile = make_profile(balance="10000")
+        position = cash_position(request, profile, events, {})
+        with self.assertRaises(ValueError):
+            projected_effects(
+                position,
+                events,
+                request,
+                profile,
+                Config(
+                    variable_spend_shape="individual_events",
+                    variable_spend_placement="whenever",
+                ),
+            )
+
+
+class ProjectedEventIdTest(unittest.TestCase):
+    def test_two_placement_days_landing_on_one_date_keep_distinct_ids(self):
+        """Projected ids must stay unique when the calendar collapses two slots.
+
+        Under `individual_events` every slot of a variable stream shares the cited
+        `latest_event_id`, and month-end clamping or a weekend roll routinely lands
+        two placement days on the same date - days 29, 30 and 31 all clamp to
+        2025-02-28. Evidence amendment and the trace ledger address effects by id, so
+        a collision makes several distinct occurrences look like one.
+        """
+        events = tuple(
+            make_event(
+                event_id=f"g{index}",
+                category="groceries",
+                amount="100",
+                settlement_date=settled_on,
+                status="settled",
+            )
+            for index, settled_on in enumerate(
+                (
+                    "2024-11-29",
+                    "2024-11-30",
+                    "2024-12-29",
+                    "2024-12-30",
+                    "2025-01-29",
+                    "2025-01-30",
+                )
+            )
+        )
+        request = make_request(request_date="2025-02-01")
+        profile = make_profile(balance="10000")
+        position = cash_position(request, profile, events, {})
+        projected = projected_effects(position, events, request, profile, Config())
+
+        february = [e for e in projected if e.cash_date.month == 2]
+        self.assertGreater(len(february), 1)
+        self.assertEqual(len({e.cash_date for e in february}), 1)
+        self.assertEqual(
+            len({e.event_id for e in projected}),
+            len(projected),
+            "projected effect ids collided",
+        )
+
+
+class VariableEstimatorNameTest(unittest.TestCase):
+    def test_an_unknown_estimator_is_refused_rather_than_silently_defaulted(self):
+        """A sweep that mistypes a name must fail, not quietly score the default."""
+        events = tuple(
+            make_event(
+                event_id=f"g{index}",
+                category="groceries",
+                amount="100",
+                settlement_date=settled_on,
+                status="settled",
+            )
+            for index, settled_on in enumerate(
+                ("2024-11-07", "2024-12-07", "2025-01-07")
+            )
+        )
+        request = make_request(request_date="2025-02-01")
+        profile = make_profile(balance="10000")
+        position = cash_position(request, profile, events, {})
+        with self.assertRaises(ValueError):
+            projected_effects(
+                position,
+                events,
+                request,
+                profile,
+                Config(variable_spend_estimator="mean12"),
+            )
+
+
 class IncomeProjectionTest(unittest.TestCase):
     def test_salary_stream_projected_beyond_explicit_row_when_enabled(self):
         settled = (
@@ -856,7 +1178,7 @@ class HorizonBoundaryTest(unittest.TestCase):
                 category="rent",
                 description="Monthly rent",
                 amount="1000",
-                settlement_date=f"2025-01-01",
+                settlement_date="2025-01-01",
                 status="settled",
             )
             for i in range(5)
@@ -879,7 +1201,7 @@ class HorizonBoundaryTest(unittest.TestCase):
                 category="rent",
                 description="Monthly rent",
                 amount="1000",
-                settlement_date=f"2025-01-02",
+                settlement_date="2025-01-02",
                 status="settled",
             )
             for i in range(5)

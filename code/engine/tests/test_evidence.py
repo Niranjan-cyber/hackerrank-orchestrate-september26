@@ -956,6 +956,64 @@ class RecurringExpenseIncreaseTest(unittest.TestCase):
             },
         )
 
+    def test_a_stated_monthly_amount_is_the_month_total_not_each_slot(self):
+        """A stated amount is what the month costs, however many slots it has.
+
+        Under the frozen `individual_events` shape a variable category becomes one
+        projected slot per observed day-of-month, all sharing the cited
+        `source_event_id`. Setting each slot to the stated figure would forecast N
+        times the amount the evidence actually states.
+        """
+        groceries = tuple(
+            make_event(
+                event_id=f"event_groc_{month}_{day}",
+                user_id="user_test",
+                description="Weekly groceries",
+                category="groceries",
+                amount=amount,
+                event_date=f"2025-{month:02d}-{day:02d}",
+                settlement_date=f"2025-{month:02d}-{day:02d}",
+                status="settled",
+            )
+            for month in (10, 11, 12)
+            for day, amount in ((6, "300"), (20, "100"))
+        )
+        base = build_position(groceries, profile=make_profile(balance="50000"))
+        slots_per_month = {}
+        for effect in base.projected_debits:
+            key = (effect.cash_date.year, effect.cash_date.month)
+            slots_per_month[key] = slots_per_month.get(key, 0) + 1
+        self.assertTrue(any(count > 1 for count in slots_per_month.values()))
+
+        applied = apply_evidence(
+            base,
+            (
+                Fact(
+                    fact_type="recurring_expense_increase",
+                    subject="message_99",
+                    user_id="user_test",
+                    related_event_id="event_groc_12_20",
+                    effective_date=date(2026, 1, 1),
+                    amount=Decimal("600"),
+                    currency="INR",
+                    source_type="service_provider",
+                    verbatim_quote="Your groceries budget is now INR 600 a month.",
+                ),
+            ),
+            REQUEST,
+            make_profile(balance="50000"),
+            CONFIG,
+            events=groceries,
+        )
+
+        by_month = {}
+        for effect in applied.position.projected_debits:
+            key = (effect.cash_date.year, effect.cash_date.month)
+            by_month[key] = by_month.get(key, Decimal("0")) + effect.amount_home
+        self.assertTrue(by_month)
+        for key, total in by_month.items():
+            self.assertEqual(total, Decimal("600"), f"month {key} forecasts {total}")
+
     def test_an_amount_below_the_current_expense_is_refused(self):
         """An "increase" that would lower an outflow is an optimistic move by a fact
         type the matrix only licenses to raise one."""
@@ -1581,7 +1639,12 @@ BLANK_EVENT = make_event(
 
 
 def utilities_history(*amounts: str) -> tuple:
-    """Settled utilities debits inside the 180-day lookback, one per month."""
+    """Settled utilities debits inside the lookback, one per month.
+
+    October to December 2025 against a 2026-01-01 request: inside the frozen 90-day
+    window (ticket 14), so these tests exercise the shipped configuration rather than
+    a lookback nothing ships with.
+    """
     return tuple(
         make_event(
             event_id=f"event_util_{index}",
@@ -1589,8 +1652,8 @@ def utilities_history(*amounts: str) -> tuple:
             description="Monthly utility bill",
             category="utilities",
             amount=amount,
-            event_date=f"2025-{8 + index:02d}-09",
-            settlement_date=f"2025-{8 + index:02d}-09",
+            event_date=f"2025-{10 + index:02d}-09",
+            settlement_date=f"2025-{10 + index:02d}-09",
             status="settled",
         )
         for index, amount in enumerate(amounts)
@@ -1650,8 +1713,8 @@ class BlankAmountTest(unittest.TestCase):
             user_id="user_test",
             category="groceries",
             amount="99999",
-            event_date="2025-09-09",
-            settlement_date="2025-09-09",
+            event_date="2025-11-09",
+            settlement_date="2025-11-09",
             status="settled",
         )
         events = (BLANK_EVENT, groceries) + utilities_history("100", "200", "900")

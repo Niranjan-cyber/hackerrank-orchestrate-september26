@@ -298,6 +298,35 @@ def _render(row: OutputRow) -> dict[str, str]:
     }
 
 
+def checked_rows(
+    rows: tuple[OutputRow, ...], dataset: Dataset
+) -> tuple[tuple[OutputRow, ...], tuple[Violation, ...]]:
+    """Every row after validation, with failures replaced by conservative rows.
+
+    Split out of `validate_and_write` so a caller that wants the submission's content
+    without writing a file - the ticket 14 calibration sweep - reads the same rows the
+    writer would, rather than a second opinion about them.
+    """
+    violations: list[Violation] = []
+    checked: list[OutputRow] = []
+    for row in rows:
+        row_violations = validate_row(row, dataset)
+        if row_violations:
+            violations.extend(row_violations)
+            checked.append(_conservative_row(row))
+        else:
+            checked.append(row)
+    return tuple(checked), tuple(violations)
+
+
+def rendered_rows(
+    rows: tuple[OutputRow, ...], dataset: Dataset
+) -> tuple[dict[str, str], ...]:
+    """The exact CSV cells `validate_and_write` would write, without writing them."""
+    checked, _ = checked_rows(rows, dataset)
+    return tuple(_render(row) for row in checked)
+
+
 def validate_and_write(
     rows: tuple[OutputRow, ...],
     dataset: Dataset,
@@ -307,16 +336,9 @@ def validate_and_write(
 
     Returns the violations found. Never raises on a bad row.
     """
-    violations: list[Violation] = []
-    checked: list[OutputRow] = []
-
-    for row in rows:
-        row_violations = validate_row(row, dataset)
-        if row_violations:
-            violations.extend(row_violations)
-            checked.append(_conservative_row(row))
-        else:
-            checked.append(row)
+    checked_tuple, checked_violations = checked_rows(rows, dataset)
+    checked = list(checked_tuple)
+    violations: list[Violation] = list(checked_violations)
 
     # Contract-level check: exactly one row per request, in dataset order.
     expected_ids = [request.request_id for request in dataset.requests]

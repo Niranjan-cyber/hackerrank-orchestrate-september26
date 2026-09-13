@@ -30,7 +30,7 @@ boxes and noting completion at the top. Do not edit a ticket owned by the other 
            |         |-- 09 reason codes + explanation + trace [Claude]
            |-- 10 evidence authority + conflicts  [Claude]  (also needs 03)  DONE
 
-14 calibration   <- needs 02, 10, 11, 12
+14 calibration   <- needs 02, 10, 11, 12  DONE (parameters frozen 2026-09-13)
 15 final run + packaging <- needs 09, 13, 14
 ```
 

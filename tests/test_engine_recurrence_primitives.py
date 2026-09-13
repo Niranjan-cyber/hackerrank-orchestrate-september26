@@ -38,13 +38,13 @@ def history(*rows):
     return tuple(make_event(**row) for row in rows)
 
 
-def streams_for(events, profile, request_date=REQUEST_DATE):
+def streams_for(events, profile, request_date=REQUEST_DATE, config=None):
     request = make_request(request_date=request_date)
     position = build_position(events, request=request, profile=profile)
     return (
         request,
         position,
-        detect_streams(position, events, request, profile, Config()),
+        detect_streams(position, events, request, profile, config or Config()),
     )
 
 
@@ -186,6 +186,10 @@ class RecurrencePrimitivesTest(unittest.TestCase):
         self.assertEqual(streams, ())
 
     def test_two_occurrences_project_only_for_a_protected_category(self):
+        """Pinned at `min_occurrences=3`: the carve-out is only observable above the
+        threshold. Ticket 14 froze the shipped threshold at 2, at which two
+        occurrences are a stream in every category, protected or not."""
+        above_threshold = Config(min_occurrences=3)
         two_rents = monthly_rents(("2024-12", "2025-01"))
         two_streams = monthly_rents(("2024-12", "2025-01"))
         two_streams = tuple(
@@ -201,9 +205,13 @@ class RecurrencePrimitivesTest(unittest.TestCase):
         )
 
         _, _, protected = streams_for(
-            two_rents, make_profile(protected_categories=("rent",))
+            two_rents,
+            make_profile(protected_categories=("rent",)),
+            config=above_threshold,
         )
-        _, _, unprotected = streams_for(two_streams, make_profile())
+        _, _, unprotected = streams_for(
+            two_streams, make_profile(), config=above_threshold
+        )
 
         self.assertEqual([s.category for s in protected], ["rent"])
         self.assertEqual(unprotected, ())

@@ -571,6 +571,57 @@ Full records to be written as ADRs under `docs/adr/` during `/to-spec`; summaris
 | D30 | Fact enum size | **25 fact types, not 11.** Verification classified all 215 messages with **zero unclassified**; the earlier figure of 11 came from an incomplete census. See [`docs/contracts/extraction-fact-schema.md`](docs/contracts/extraction-fact-schema.md). |
 | D31 | Evidence direction rule | Evidence may **always** move the forecast in the **conservative** direction (less cash). It may move it **optimistically only for confirmed salary facts** — the one exception the spec names ("Count confirmed salary on its settlement date"). |
 
+### Settled by ticket 14 — the calibration block, now closed (2026-09-13)
+
+**The seven forecasting parameters are frozen.** Three moved: `lookback_days` 180 → **90**,
+`min_occurrences` 3 → **2**, and `variable_spend_shape` `monthly_total` → **`individual_events`**.
+Four stayed, each for a recorded reason rather than by default. The five discrete columns went
+**79/125 → 90/125** on the 25 solved samples — five requests improved, none regressed — while
+`amount_safe_to_pay` held at 1/25. Full record, including the losing alternatives, in
+`docs/investigation/calibration.md`; the freeze is enforced by
+`code/engine/tests/test_frozen_calibration.py`.
+
+**The section 9 sample-11 diagnosis was right, and closing it was the block's largest single win.**
+"Place the whole variable month on the earliest observed day" forecast entire weeks of zero variable
+spend, mis-timing both the squeeze and the saving meant to answer it. Splitting the same monthly
+total across the observed days-of-month is worth +8 discrete matches on its own — more than every
+other axis moved combined.
+
+**The window and the threshold are one decision, not two.** A 90-day lookback holds at most three
+monthly occurrences, so requiring three inside it is nearly unsatisfiable and two is the matching
+threshold. Neither reading is wrong; the samples prefer "currently active" over "long history" by 11
+discrete matches. A side effect: at a threshold of 2, `protected_two_occurrence_project` can never
+fire. It was left in place — it is not one of the seven parameters the block was allowed to touch —
+and the two tests that pin it now name `min_occurrences=3` explicitly.
+
+**The ticket's priority rule decided a real trade-off, not a hypothetical one.** A grid point at
+`min_occurrences=4` with `mean6` scores 89 discrete and **3/25** on `amount_safe_to_pay`, against the
+frozen point's 90 and 1. The discrete columns take priority, so 90/1 was frozen and the extra two
+continuous matches were given up deliberately.
+
+**A 91/125 point exists and was declined, on measured grounds.** `lookback_days=120` with `mean6`
+scores one cell better, but each half of that pair *costs* matches alone (−6 and −3 from the frozen
+point), the whole gain is `request_21`'s `spending_changes_needed`, and the frozen point is a local
+optimum in every single direction while the 91 is reachable only by a two-axis jump across a valley.
+On 25 samples generalising to 250 unlabelled requests that is overfitting, so it was not taken. The
+alternative is recorded in the calibration doc so the call is reversible.
+
+**Five defects fell out of the shape change, four of them found by code review.** All share one root
+cause: under `individual_events` every per-day slot of a variable stream carries the same cited
+`latest_event_id`. (1) `spending.eligible_changes` emitted a candidate per slot, so a three-change
+budget could be spent citing one event three times. (2) `spending.apply_changes` credited a saving
+per slot rather than per month — 3.2× over-credit on `request_12`, and the ledger certifies plans
+against that position, so it ran in the **unsafe** direction. (3) Projected effect ids collided
+whenever month-end clamping or a weekend roll landed two placement days on one date — 1,670
+duplicates in the real 250-request run, against code that addresses effects by id. (4) A stated
+absolute amount in `evidence._raise_expense` was applied per slot, forecasting N times what the
+evidence said (latent on this dataset). (5) The pro-rata split could leave the earliest slot
+negative — a phantom credit. All five are fixed and pinned by tests; the corrections left the frozen
+score unchanged at 90/125 but did move the landscape around it, so the grid and descent were re-run
+afterwards rather than trusted from the first pass.
+
+---
+
 ## 14. Open questions and what Round 2 closed
 
 ### Closed by evidence in Grill Round 2 (no user decision needed)

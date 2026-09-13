@@ -201,12 +201,15 @@ class Stream:
     `latest_event_id` is the stream's most recent settled occurrence before
     `request_date` - the id a spending change must cite (CONTEXT.md section 10).
     `latest_amount` is what one projected occurrence costs in home currency: the
-    latest observed amount for a fixed stream, the forecast monthly total for a
-    variable one.
+    latest observed amount for a fixed stream, and for a variable one the share of
+    the forecast monthly total this slot carries - the whole total under the
+    `monthly_total` shape, one day's portion of it under `individual_events`.
     """
 
     stream_key: tuple[str, str, str, str]
-    # category, direction, event_type, normalized_description
+    # category, direction, event_type, discriminator. The discriminator is the
+    # normalized description for a fixed stream; a variable stream appends its
+    # placement day, so the `individual_events` shape's per-day slots stay distinct.
     latest_event_id: str
     latest_amount: Decimal
     day_of_month: int
@@ -214,7 +217,6 @@ class Stream:
     category: str
     flexibility: str
     is_variable: bool
-    variable_monthly_total: Decimal | None = None
 
 
 # --- suppression ------------------------------------------------------------------
@@ -401,24 +403,93 @@ def _detect_variable_streams(
         # floor arithmetic and not merely presentation.
         monthly_total = money_scale(estimator(totals))
         latest = max(group, key=lambda e: (e.cash_date, e.event_id))
-        # Place the monthly total on the earliest observed day-of-month to keep the
-        # projection conservative (earlier debits, later credits are safer for floor).
-        placement_day = min(e.cash_date.day for e in group)
         norm = _normalize_description(latest.description)
-        streams.append(
-            Stream(
-                stream_key=(key[0], key[1], key[2], norm),
-                latest_event_id=latest.event_id,
-                latest_amount=monthly_total,
-                day_of_month=placement_day,
-                direction=key[1],
-                category=key[0],
-                flexibility=latest.flexibility,
-                is_variable=True,
-                variable_monthly_total=monthly_total,
+        for placement_day, share in _variable_placements(
+            group, monthly_total, profile.home_currency, rates, config
+        ):
+            streams.append(
+                Stream(
+                    stream_key=(key[0], key[1], key[2], f"{norm}@{placement_day}"),
+                    latest_event_id=latest.event_id,
+                    latest_amount=share,
+                    day_of_month=placement_day,
+                    direction=key[1],
+                    category=key[0],
+                    flexibility=latest.flexibility,
+                    is_variable=True,
+                )
             )
-        )
     return streams
+
+
+def _variable_placements(
+    group: list[Event],
+    monthly_total: Decimal,
+    home_currency: str,
+    rates: Mapping[tuple[str, str, str], Decimal],
+    config: Config,
+) -> list[tuple[int, Decimal]]:
+    """The (day-of-month, amount) slots one variable month is forecast into.
+
+    Both shapes forecast the same `monthly_total`; they differ only in how it is
+    placed inside the month. Ticket 14 sweeps the choice.
+    """
+    days = [event.cash_date.day for event in group]
+    # Validated on every path, not only the one that consults it. `individual_events`
+    # never asks for a placement day unless the history prices to nothing, so leaving
+    # the check inside `_placement_day` would let a mistyped sweep value run the whole
+    # dataset silently under the shipped shape.
+    _check_placement(config)
+
+    if config.variable_spend_shape == "monthly_total":
+        return [(_placement_day(days, config), monthly_total)]
+
+    if config.variable_spend_shape != "individual_events":
+        raise ValueError(
+            f"unknown variable_spend_shape {config.variable_spend_shape!r}; "
+            "expected one of ['individual_events', 'monthly_total']"
+        )
+
+    # Split the estimated total across the observed days-of-month in proportion to
+    # each day's share of the observed spend.
+    by_day: dict[int, Decimal] = {}
+    for event in group:
+        by_day[event.cash_date.day] = by_day.get(
+            event.cash_date.day, ZERO
+        ) + _home_amount(event, home_currency, rates)
+    observed_total = sum(by_day.values(), ZERO)
+    if observed_total <= ZERO:
+        return [(_placement_day(days, config), monthly_total)]
+
+    # The remainder goes on the *last* day: a share can round to nothing while every
+    # later day rounds up, and on the earliest day that drives the remainder negative
+    # - a projected debit below zero is a phantom credit in the ledger. Clamped as
+    # well as ordered, so rounding can only ever under-forecast by pennies.
+    ordered_days = sorted(by_day)
+    shares = [
+        (day, money_scale(monthly_total * by_day[day] / observed_total))
+        for day in ordered_days[:-1]
+    ]
+    last = monthly_total - sum((amount for _, amount in shares), ZERO)
+    return [*shares, (ordered_days[-1], max(last, ZERO))]
+
+
+def _check_placement(config: Config) -> None:
+    if config.variable_spend_placement not in ("earliest", "median", "latest"):
+        raise ValueError(
+            f"unknown variable_spend_placement {config.variable_spend_placement!r}; "
+            "expected one of ['earliest', 'latest', 'median']"
+        )
+
+
+def _placement_day(days: list[int], config: Config) -> int:
+    """Which observed day-of-month a whole-month variable total is placed on."""
+    _check_placement(config)
+    if config.variable_spend_placement == "earliest":
+        return min(days)
+    if config.variable_spend_placement == "median":
+        return _median_day(days)
+    return max(days)
 
 
 def _cluster_days(days: list[int], tolerance: int) -> list[list[int]]:
@@ -463,7 +534,6 @@ def _stream_from_events(
         category=key[0],
         flexibility=latest.flexibility,
         is_variable=is_variable,
-        variable_monthly_total=monthly_total,
     )
 
 
@@ -504,7 +574,16 @@ def _project_stream(
             continue
         effects.append(
             CashEffect(
-                event_id=f"projected:{stream.latest_event_id}:{candidate.isoformat()}",
+                # The placement day is part of the id, not decoration: under
+                # `individual_events` every slot of a variable stream carries the same
+                # `latest_event_id`, and month-end clamping or a weekend roll lands
+                # two placement days on one date often enough that ids collide
+                # without it. Evidence amendment and the trace ledger address effects
+                # by id, so a collision merges distinct occurrences.
+                event_id=(
+                    f"projected:{stream.latest_event_id}"
+                    f":{stream.day_of_month:02d}:{candidate.isoformat()}"
+                ),
                 state=state,
                 cash_date=candidate,
                 amount_home=stream.latest_amount,
@@ -615,7 +694,12 @@ def _variable_estimator(name: str):
         "mean6": _mean6,
         "max_median3_mean6": _max_median3_mean6,
     }
-    return estimators.get(name, _max_median3_mean6)
+    if name not in estimators:
+        raise ValueError(
+            f"unknown variable_spend_estimator {name!r}; "
+            f"expected one of {sorted(estimators)}"
+        )
+    return estimators[name]
 
 
 def _median_day(days: list[int]) -> int:

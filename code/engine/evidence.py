@@ -975,6 +975,20 @@ def _raise_expense(
     if amendment.amount is not None and replacement is None:
         return _NoAmendment(EVIDENCE_AMOUNT_UNCONVERTIBLE)
 
+    # A stated absolute amount is what the *month* costs. A percentage needs no such
+    # care - scaling every slot scales the month by the same factor - but replacing
+    # every slot with the stated figure would forecast it once per slot, and under the
+    # frozen `individual_events` shape a variable category has several slots a month
+    # all sharing the cited `source_event_id`.
+    stated_shares = (
+        {}
+        if replacement is None
+        else _monthly_shares(
+            [e for e in effects if _is_named_outflow(e, amendment, context)],
+            replacement,
+        )
+    )
+
     amended: list[CashEffect] = []
     hit = False
     for effect in effects:
@@ -984,7 +998,7 @@ def _raise_expense(
         hit = True
         current = effect.amount_home or ZERO
         raised = (
-            replacement
+            stated_shares[effect.event_id]
             if replacement is not None
             else money_scale(
                 current * (Decimal(100) + amendment.percent) / Decimal(100)
@@ -995,6 +1009,38 @@ def _raise_expense(
     if not hit:
         return _NoAmendment(EVIDENCE_TARGET_UNRESOLVED)
     return _Amended(effects=tuple(amended), accepted_code=amendment.accepted_code)
+
+
+def _monthly_shares(
+    matched: list[CashEffect], month_total: Decimal
+) -> dict[str, Decimal]:
+    """Spread a stated monthly amount over each month's slots, keyed by effect id.
+
+    Proportional to what each slot already carries, so the shape of the month is kept
+    and only its total is restated. The rounding remainder goes on the month's last
+    slot. A month whose slots price to nothing is split evenly - there is no shape to
+    preserve, and dropping the amount would lose the evidence entirely.
+    """
+    by_month: dict[tuple[int, int], list[CashEffect]] = {}
+    for effect in matched:
+        key = (effect.cash_date.year, effect.cash_date.month)
+        by_month.setdefault(key, []).append(effect)
+
+    shares: dict[str, Decimal] = {}
+    for slots in by_month.values():
+        ordered = sorted(slots, key=lambda e: (e.cash_date, e.event_id))
+        current_total = sum((e.amount_home or ZERO for e in ordered), ZERO)
+        allocated = ZERO
+        for effect in ordered[:-1]:
+            part = (
+                money_scale(month_total * (effect.amount_home or ZERO) / current_total)
+                if current_total > ZERO
+                else money_scale(month_total / Decimal(len(ordered)))
+            )
+            shares[effect.event_id] = part
+            allocated += part
+        shares[ordered[-1].event_id] = max(month_total - allocated, ZERO)
+    return shares
 
 
 def _is_named_outflow(

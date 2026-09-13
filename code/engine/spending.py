@@ -59,7 +59,7 @@ from itertools import combinations
 from typing import Iterator, Mapping, Sequence
 
 from .cash import PROJECTED_DEBIT, CashPosition, convert
-from .money import ZERO, format_plan_amount
+from .money import ZERO, format_plan_amount, money_scale
 from .recurrence import Stream
 from .types import Event, Profile
 
@@ -118,6 +118,11 @@ def eligible_changes(
     Derived from the detected streams rather than from the raw event rows, because
     "part of a detected recurring stream" is itself one of the eligibility rules and
     the cited id must be the stream's most recent settled occurrence.
+
+    A pair appears at most once even when several streams reach it. Under the frozen
+    `individual_events` shape a variable category is one stream per observed
+    day-of-month, and all of them carry the same `latest_event_id`; without the guard a
+    three-change budget could be spent citing one event three times.
     """
     rates = rates or {}
     protected = frozenset(profile.protected_categories)
@@ -127,6 +132,7 @@ def eligible_changes(
     }
 
     found: list[SpendingChange] = []
+    seen: set[tuple[str, str]] = set()
     for stream in streams:
         # Only spending can be cut. An income stream is not the user's to stop, and
         # stopping it would *lower* the forecast balance anyway.
@@ -143,6 +149,8 @@ def eligible_changes(
             continue
 
         for action in (STOP, REDUCE_TO):
+            if (action, event.event_id) in seen:
+                continue
             if event.flexibility not in FLEXIBILITY_ALLOWS[action]:
                 continue
             if stream.category not in willing[action]:
@@ -159,6 +167,7 @@ def eligible_changes(
                     # The "minimum" is at or above what the user already spends, so
                     # this is not a reduction.
                     continue
+            seen.add((action, event.event_id))
             found.append(
                 SpendingChange(
                     action=action,
@@ -255,9 +264,16 @@ def apply_changes(
     less next month - and the opening balance is history. So a change can only ever
     lower future inferred spending, which is the only thing it is evidence for.
 
-    A saving larger than the occurrence zeroes it; it never becomes a credit. That
-    matters for a variable stream, where the saving is measured on one event and the
-    occurrence is a whole month's forecast.
+    A saving larger than the month zeroes it; it never becomes a credit. That matters
+    for a variable stream, where the saving is measured on one event and the month is
+    a whole forecast category total.
+
+    **The saving is a monthly quantity, applied once per calendar month.** A fixed
+    stream projects one occurrence a month, so that is the same thing. A variable
+    stream under the frozen `individual_events` shape projects one slot per observed
+    day-of-month, all carrying the same `source_event_id`, and subtracting the whole
+    saving from each slot would credit it once per slot. The ledger certifies plans
+    against the result, so that over-credit runs in the unsafe direction.
     """
     if not changes:
         return position
@@ -266,18 +282,65 @@ def apply_changes(
     for change in changes:
         savings[change.event_id] = savings.get(change.event_id, ZERO) + change.saving
 
+    reductions = _monthly_reductions(position, savings)
+
     kept = []
-    for effect in position.effects:
-        saving = savings.get(effect.source_event_id or "")
-        if saving is None or effect.state != PROJECTED_DEBIT:
+    for index, effect in enumerate(position.effects):
+        reduction = reductions.get(index)
+        if reduction is None:
             kept.append(effect)
             continue
-        reduced = (effect.amount_home or ZERO) - saving
+        reduced = (effect.amount_home or ZERO) - reduction
         if reduced <= ZERO:
             continue
         kept.append(replace(effect, amount_home=reduced))
 
     return replace(position, effects=tuple(kept))
+
+
+def _monthly_reductions(
+    position: CashPosition, savings: Mapping[str, Decimal]
+) -> dict[int, Decimal]:
+    """How much to take off each projected debit, keyed by its index in `effects`.
+
+    Each (cited event, calendar month) gives up exactly its saving, spread across that
+    month's slots in proportion to what each carries. The rounding remainder goes on
+    the month's *last* slot, so the saving lands as late as it can - the conservative
+    direction for a floor test, which is decided by the running minimum.
+    """
+    months: dict[tuple[str, int, int], list[int]] = {}
+    for index, effect in enumerate(position.effects):
+        source = effect.source_event_id or ""
+        if source in savings and effect.state == PROJECTED_DEBIT:
+            key = (source, effect.cash_date.year, effect.cash_date.month)
+            months.setdefault(key, []).append(index)
+
+    reductions: dict[int, Decimal] = {}
+    for (source, _year, _month), indexes in months.items():
+        saving = savings[source]
+        ordered = sorted(
+            indexes,
+            key=lambda i: (position.effects[i].cash_date, position.effects[i].event_id),
+        )
+        month_total = sum(
+            ((position.effects[i].amount_home or ZERO) for i in ordered), ZERO
+        )
+        if month_total <= ZERO:
+            continue
+        if saving >= month_total:
+            # The whole month goes. Taking each slot's own amount avoids handing the
+            # last slot a remainder larger than it carries.
+            for i in ordered:
+                reductions[i] = position.effects[i].amount_home or ZERO
+            continue
+        allocated = ZERO
+        for i in ordered[:-1]:
+            amount = position.effects[i].amount_home or ZERO
+            part = money_scale(saving * amount / month_total)
+            reductions[i] = part
+            allocated += part
+        reductions[ordered[-1]] = saving - allocated
+    return reductions
 
 
 def _home(
