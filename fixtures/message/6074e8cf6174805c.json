@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "1661",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "EUR",
+      "effective_date": "2026-01-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T02:58:34.886428+00:00",
+        "fixture_key": "6074e8cf6174805c",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_15",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_11",
+      "user_id": "user_15",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your first salary will be EUR 1661. The confirmed credit date is 2026-01-15."
+    }
+  ]
+}

@@ -50,7 +50,26 @@ def _load_json(path: Path) -> dict:
         return json.load(handle)
 
 
-def _fact_from_json(data: dict) -> Fact:
+def _iter_fact_dicts(document: object) -> list[dict]:
+    """Every raw fact object in a fixture document.
+
+    Supported shapes, all committed by the adapter itself:
+
+    * ``{"facts": [fact, ...]}`` - the recorded shape (a message may yield several);
+    * ``[fact, ...]`` - a bare array;
+    * ``fact`` - the legacy single-fact shape from ticket 03.
+    """
+    if isinstance(document, list):
+        return [item for item in document if isinstance(item, dict)]
+    if isinstance(document, dict):
+        if isinstance(document.get("facts"), list):
+            return [item for item in document["facts"] if isinstance(item, dict)]
+        if "fact_type" in document:
+            return [document]
+    return []
+
+
+def fact_from_json(data: dict) -> Fact:
     """Build a Fact from a fixture JSON object."""
     amount_raw = data.get("amount")
     amount = money(amount_raw) if amount_raw is not None else None
@@ -162,19 +181,20 @@ class FixtureExtractor:
                         )
                     )
                     continue
-                try:
-                    fact = _fact_from_json(data)
-                except (KeyError, ValueError, TypeError) as exc:
-                    self._violations.append(
-                        Violation(
-                            "SHAPE",
-                            path.stem,
-                            data.get("fact_type", "unknown"),
-                            f"cannot build Fact from {path}: {exc}",
+                for raw in _iter_fact_dicts(data):
+                    try:
+                        fact = fact_from_json(raw)
+                    except (KeyError, ValueError, TypeError, ArithmeticError) as exc:
+                        self._violations.append(
+                            Violation(
+                                "SHAPE",
+                                raw.get("subject", path.stem),
+                                raw.get("fact_type", "unknown"),
+                                f"cannot build Fact from {path}: {exc}",
+                            )
                         )
-                    )
-                    continue
-                raw_facts.append(fact)
+                        continue
+                    raw_facts.append(fact)
 
         validated, violations = validate_facts(
             raw_facts,

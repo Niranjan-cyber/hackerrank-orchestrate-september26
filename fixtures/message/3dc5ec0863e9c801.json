@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "EUR",
+      "effective_date": "2024-12-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:40:57.555396+00:00",
+        "fixture_key": "3dc5ec0863e9c801",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "invoice_approved_pending",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "service_provider",
+      "subject": "message_72",
+      "user_id": "user_94",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "EUR 924"
+    }
+  ]
+}

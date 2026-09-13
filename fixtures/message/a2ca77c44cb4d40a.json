@@ -1,0 +1,52 @@
+{
+  "facts": [
+    {
+      "amount": "103000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "INR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:25:09.870245+00:00",
+        "fixture_key": "a2ca77c44cb4d40a",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_increase",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_271",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_211",
+      "user_id": "user_271",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "INR 103000"
+    },
+    {
+      "amount": "46350",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "INR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:25:09.870268+00:00",
+        "fixture_key": "a2ca77c44cb4d40a",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "one_time_arrears",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_271",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_211",
+      "user_id": "user_271",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "INR 46350"
+    }
+  ]
+}

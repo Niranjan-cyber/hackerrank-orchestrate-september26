@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "137150",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "INR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:03:21.174678+00:00",
+        "fixture_key": "223eafe6f48401b6",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_decrease",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_168",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_132",
+      "user_id": "user_168",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your next salary is reduced to INR 137150."
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:20:32.891937+00:00",
+        "fixture_key": "06ca01503dfb45f4",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "disputed_duplicate_charge",
+      "percent_change": null,
+      "related_event_id": "event_23203",
+      "request_id": "request_252",
+      "source_language": "id",
+      "source_type": "bank",
+      "subject": "message_197",
+      "user_id": "user_252",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Tagihan kartu tambahan masih dalam penyelidikan."
+    }
+  ]
+}

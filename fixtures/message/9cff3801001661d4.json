@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "164880",
+      "applies_to_cycles": 1,
+      "confidence": "high",
+      "currency": "INR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:42:24.684269+00:00",
+        "fixture_key": "9cff3801001661d4",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_temporary",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_77",
+      "user_id": "user_103",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "INR 164880"
+    }
+  ]
+}

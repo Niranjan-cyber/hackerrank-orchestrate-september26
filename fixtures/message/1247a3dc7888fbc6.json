@@ -1,0 +1,52 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:17:38.733330+00:00",
+        "fixture_key": "1247a3dc7888fbc6",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "employment_ended",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_238",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_187",
+      "user_id": "user_238",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "One household employment record has ended."
+    },
+    {
+      "amount": "912",
+      "applies_to_cycles": null,
+      "confidence": "medium",
+      "currency": "USD",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:17:38.733352+00:00",
+        "fixture_key": "1247a3dc7888fbc6",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_increase",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_238",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_187",
+      "user_id": "user_238",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "The remaining confirmed monthly salary is USD 912."
+    }
+  ]
+}

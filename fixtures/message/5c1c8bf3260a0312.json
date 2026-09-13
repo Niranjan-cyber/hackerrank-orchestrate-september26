@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "84000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "INR",
+      "effective_date": "2025-05-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:00:53.890799+00:00",
+        "fixture_key": "5c1c8bf3260a0312",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_120",
+      "user_id": "user_155",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Regular salary of INR 84000 resumes on 2025-05-15."
+    }
+  ]
+}

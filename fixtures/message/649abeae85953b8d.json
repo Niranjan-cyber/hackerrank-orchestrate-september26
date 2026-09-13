@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "196000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "INR",
+      "effective_date": "2024-12-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:27:09.287346+00:00",
+        "fixture_key": "649abeae85953b8d",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "invoice_approved_pending",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "service_provider",
+      "subject": "message_24",
+      "user_id": "user_34",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "INR 196000"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "1296",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "USD",
+      "effective_date": "2026-09-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:49:41.049852+00:00",
+        "fixture_key": "9397647cb3cbe476",
+        "model": "openai/gpt-oss-120b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": "event_10521",
+      "request_id": "request_113",
+      "source_language": "en",
+      "source_type": "financial_service",
+      "subject": "message_86",
+      "user_id": "user_113",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "USD 1296"
+    }
+  ]
+}

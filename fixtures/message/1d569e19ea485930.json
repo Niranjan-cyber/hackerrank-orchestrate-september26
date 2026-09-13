@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "152000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "INR",
+      "effective_date": "2026-07-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:47:54.243337+00:00",
+        "fixture_key": "1d569e19ea485930",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "recurring_expense_increase",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_126",
+      "source_language": "en",
+      "source_type": "service_provider",
+      "subject": "message_96",
+      "user_id": "user_126",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "INR 152000"
+    }
+  ]
+}

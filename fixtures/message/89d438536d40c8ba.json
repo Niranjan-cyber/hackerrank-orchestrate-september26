@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:07:17.289097+00:00",
+        "fixture_key": "89d438536d40c8ba",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "expense_reimbursement_settled",
+      "percent_change": null,
+      "related_event_id": "event_17401",
+      "request_id": "request_188",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_150",
+      "user_id": "user_188",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "The claim is now closed and no additional reimbursement is scheduled."
+    }
+  ]
+}

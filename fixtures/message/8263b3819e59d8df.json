@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "2717",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "EUR",
+      "effective_date": "2025-08-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T02:56:30.003101+00:00",
+        "fixture_key": "8263b3819e59d8df",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_10",
+      "user_id": "user_14",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Regular salary of EUR 2717 resumes on 2025-08-15."
+    }
+  ]
+}

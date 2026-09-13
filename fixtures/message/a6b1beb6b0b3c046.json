@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "1037.52",
+      "applies_to_cycles": 1,
+      "confidence": "high",
+      "currency": "EUR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T02:55:30.495184+00:00",
+        "fixture_key": "a6b1beb6b0b3c046",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_temporary",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_06",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_04",
+      "user_id": "user_06",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your temporary monthly pay is EUR 1037.52."
+    }
+  ]
+}

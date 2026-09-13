@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "2040",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "USD",
+      "effective_date": "2024-12-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T02:58:19.771441+00:00",
+        "fixture_key": "997279952995214f",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "invoice_approved_pending",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_142",
+      "source_language": "en",
+      "source_type": "service_provider",
+      "subject": "message_109",
+      "user_id": "user_142",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "The client approved an invoice payment of USD 2040. Settlement is expected on 2024-12-15"
+    }
+  ]
+}

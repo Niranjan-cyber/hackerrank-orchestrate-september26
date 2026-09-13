@@ -1,0 +1,52 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:32:19.618484+00:00",
+        "fixture_key": "cc26af48d37f26a1",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "income_ended",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_58",
+      "source_language": "id",
+      "source_type": "employer",
+      "subject": "message_42",
+      "user_id": "user_58",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Salah satu sumber pendapatan kerja rumah tangga telah berakhir."
+    },
+    {
+      "amount": "25840000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "IDR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:32:19.618509+00:00",
+        "fixture_key": "cc26af48d37f26a1",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_increase",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_58",
+      "source_language": "id",
+      "source_type": "employer",
+      "subject": "message_42",
+      "user_id": "user_58",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Sisa gaji bulanan yang dikonfirmasi adalah IDR 25840000."
+    }
+  ]
+}

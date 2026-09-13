@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "31900",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "ZAR",
+      "effective_date": "2025-02-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T02:57:57.705768+00:00",
+        "fixture_key": "80d508e3c08ba607",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_107",
+      "user_id": "user_140",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your first salary will be ZAR 31900. The confirmed credit date is 2025-02-15."
+    }
+  ]
+}

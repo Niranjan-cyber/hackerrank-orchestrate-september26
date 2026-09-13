@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:28:18.223228+00:00",
+        "fixture_key": "dc65f8f7ed208c28",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "windfall_settled",
+      "percent_change": null,
+      "related_event_id": "event_3491",
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "financial_service",
+      "subject": "message_28",
+      "user_id": "user_38",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "The prize proceeds have reached your account after withholding."
+    }
+  ]
+}

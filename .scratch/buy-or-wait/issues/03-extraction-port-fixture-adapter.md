@@ -23,3 +23,9 @@ tests: a `windfall_solicitation` message, and a fact whose digits are absent fro
 - [x] Changing the contract version or a prompt template turns every affected lookup into a miss, never a stale hit
 - [x] Hand-authored adversarial fixtures are present and labelled as hand-authored
 - [x] All 13 contract validation rules are enforced before any fact is returned
+
+**2026-09-13 (ticket 11 follow-up):** the two hand-authored adversarial fixtures moved to
+`tests/fixtures/adversarial/message/`. When ticket 11 recorded all 215 real message fixtures under
+`fixtures/message/`, the adversarial `message_01` fixture both collided with and contradicted the
+recorded one; isolating them keeps `fixtures/` a clean record of real model output, and the adapter
+tests now point at the test-local directory.

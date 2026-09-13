@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:01:09.019211+00:00",
+        "fixture_key": "fa8647be0c94af24",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "disputed_duplicate_charge",
+      "percent_change": null,
+      "related_event_id": "event_14399",
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "bank",
+      "subject": "message_121",
+      "user_id": "user_156",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "The extra card charge is still being investigated. A reversal has not been posted to the account yet."
+    }
+  ]
+}

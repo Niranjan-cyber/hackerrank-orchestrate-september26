@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:03:51.276676+00:00",
+        "fixture_key": "0a5774b4540fad23",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "prize_claim_processing",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "id",
+      "source_type": "financial_service",
+      "subject": "message_134",
+      "user_id": "user_170",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Klaim hadiah Anda sudah diverifikasi dan masih dalam proses pembayaran. Pembayaran tersebut belum masuk ke rekening Anda."
+    }
+  ]
+}

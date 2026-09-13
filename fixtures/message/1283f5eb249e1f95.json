@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:24:01.071479+00:00",
+        "fixture_key": "1283f5eb249e1f95",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "foreign_currency_amount_pending",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_267",
+      "source_language": "en",
+      "source_type": "merchant",
+      "subject": "message_208",
+      "user_id": "user_267",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your bank will confirm the final home-currency amount when the transaction settles."
+    }
+  ]
+}

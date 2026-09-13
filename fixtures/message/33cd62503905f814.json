@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "16720",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "ZAR",
+      "effective_date": "2025-08-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:44:08.795829+00:00",
+        "fixture_key": "33cd62503905f814",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "invoice_approved_pending",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "service_provider",
+      "subject": "message_83",
+      "user_id": "user_110",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "ZAR 16720"
+    }
+  ]
+}

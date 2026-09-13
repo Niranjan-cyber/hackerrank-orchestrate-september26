@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:12:25.409530+00:00",
+        "fixture_key": "84ec78bd419c2368",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "recurring_expense_increase",
+      "percent_change": "12",
+      "related_event_id": null,
+      "request_id": "request_225",
+      "source_language": "id",
+      "source_type": "service_provider",
+      "subject": "message_175",
+      "user_id": "user_225",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Perpanjangan sewa menaikkan biaya sewa bulanan sebesar 12%."
+    }
+  ]
+}

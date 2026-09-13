@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "1485",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "EUR",
+      "effective_date": "2025-05-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:22:53.025797+00:00",
+        "fixture_key": "75381d52c3bd32e5",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_204",
+      "user_id": "user_263",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your salary of EUR 1485 is confirmed for 2025-05-15."
+    }
+  ]
+}

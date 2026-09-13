@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:06:03.631969+00:00",
+        "fixture_key": "6babeb599262d451",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "foreign_currency_amount_pending",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_183",
+      "source_language": "id",
+      "source_type": "merchant",
+      "subject": "message_145",
+      "user_id": "user_183",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Tagihan dikenakan dalam mata uang asing. Bank Anda akan mengonfirmasi jumlah akhir dalam mata uang utama saat transaksi selesai."
+    }
+  ]
+}

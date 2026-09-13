@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:37:47.180945+00:00",
+        "fixture_key": "7c0b785d50ea6f74",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "recurring_expense_increase",
+      "percent_change": "12",
+      "related_event_id": null,
+      "request_id": "request_81",
+      "source_language": "en",
+      "source_type": "service_provider",
+      "subject": "message_61",
+      "user_id": "user_81",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "12%"
+    }
+  ]
+}

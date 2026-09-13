@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "62000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "INR",
+      "effective_date": "2026-01-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:03:11.638891+00:00",
+        "fixture_key": "aa5d875654f46679",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_240",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_188",
+      "user_id": "user_240",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your first salary will be INR 62000. The confirmed credit date is 2026-01-15."
+    }
+  ]
+}

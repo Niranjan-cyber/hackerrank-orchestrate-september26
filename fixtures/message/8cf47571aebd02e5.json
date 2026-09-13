@@ -1,0 +1,52 @@
+{
+  "facts": [
+    {
+      "amount": "847",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "EUR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:04:42.167806+00:00",
+        "fixture_key": "8cf47571aebd02e5",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_confirmed_unchanged",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_176",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_139",
+      "user_id": "user_176",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your confirmed base salary is EUR 847."
+    },
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:04:42.167836+00:00",
+        "fixture_key": "8cf47571aebd02e5",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "bonus_unconfirmed",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_176",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_139",
+      "user_id": "user_176",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "The commission shown for open deals is still pending approval."
+    }
+  ]
+}

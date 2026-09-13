@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "50160",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "ZAR",
+      "effective_date": "2024-09-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:48:11.971179+00:00",
+        "fixture_key": "29c2e73b177e03ba",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_127",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_97",
+      "user_id": "user_127",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "ZAR 50160 resumes on 2024-09-15"
+    }
+  ]
+}

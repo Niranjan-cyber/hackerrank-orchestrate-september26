@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:05:56.687349+00:00",
+        "fixture_key": "5a277e62a766c2b5",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "bonus_unconfirmed",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_144",
+      "user_id": "user_182",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your quarterly bonus is still subject to the final performance review. The final amount and payment date have not been approved yet."
+    }
+  ]
+}

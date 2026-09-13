@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "1924.56",
+      "applies_to_cycles": 1,
+      "confidence": "high",
+      "currency": "EUR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:04:35.166323+00:00",
+        "fixture_key": "9955710a1f50bfcd",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_temporary",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_138",
+      "user_id": "user_175",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your temporary monthly pay is EUR 1924.56. The reduced amount continues for the next payroll."
+    }
+  ]
+}

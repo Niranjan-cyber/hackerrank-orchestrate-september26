@@ -1,0 +1,52 @@
+{
+  "facts": [
+    {
+      "amount": "759",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "EUR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:46:10.179749+00:00",
+        "fixture_key": "aea4379159504b1e",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_118",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_90",
+      "user_id": "user_118",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "EUR 759"
+    },
+    {
+      "amount": "341.55",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "EUR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:46:10.179763+00:00",
+        "fixture_key": "aea4379159504b1e",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "one_time_arrears",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_118",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_90",
+      "user_id": "user_118",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "EUR 341.55"
+    }
+  ]
+}

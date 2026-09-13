@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T02:58:12.792577+00:00",
+        "fixture_key": "50e0edb6dae0afd7",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "investment_sale_settled",
+      "percent_change": null,
+      "related_event_id": "event_13032",
+      "request_id": "request_141",
+      "source_language": "en",
+      "source_type": "financial_service",
+      "subject": "message_108",
+      "user_id": "user_141",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "The proceeds from your investment sale have settled in the cash account."
+    }
+  ]
+}

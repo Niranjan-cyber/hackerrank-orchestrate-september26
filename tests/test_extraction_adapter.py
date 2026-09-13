@@ -61,7 +61,9 @@ class TestFixtureExtractor(unittest.TestCase):
 
     def setUp(self):
         self.dataset_dir = REPO_ROOT / "dataset"
-        self.fixtures_dir = REPO_ROOT / "fixtures"
+        # Hand-authored adversarial fixtures only: the production fixtures/ directory
+        # holds recorded model outputs and is exercised by the recorded-corpus test.
+        self.fixtures_dir = REPO_ROOT / "tests" / "fixtures" / "adversarial"
         self.dataset = load_dataset(self.dataset_dir)
         self.extractor = FixtureExtractor(
             dataset=self.dataset,
@@ -355,6 +357,190 @@ class TestValidateRegression(unittest.TestCase):
         )
         self.assertIsNone(valid)
         self.assertTrue(any(v.rule == "V7" for v in violations))
+
+
+class TestConservativeDateRules(unittest.TestCase):
+    """Conservative evidence must survive a missing effective date (contract section 3)."""
+
+    def _context(self):
+        from engine.money import money
+        from engine.types import Dataset, Profile, Request
+
+        request = Request(
+            request_id="request_test",
+            user_id="user_test",
+            request_date=date(2025, 8, 1),
+            request_type="purchase",
+            requested_amount=money("1000"),
+            desired_completion_date=date(2025, 10, 1),
+            allows_partial_payment=False,
+            request_text="test",
+        )
+        profile = Profile(
+            user_id="user_test",
+            home_currency="INR",
+            current_available_balance=money("10000"),
+            minimum_balance_to_keep=money("1000"),
+            financial_priorities=(),
+            protected_categories=(),
+            reducible_categories=(),
+            stoppable_categories=(),
+            payment_methods_considered=("full_payment",),
+            max_installment_months=None,
+        )
+        dataset = Dataset(
+            requests=(request,),
+            profiles={"user_test": profile},
+            events_by_user={},
+            options_by_request={},
+            rates={},
+        )
+        return dataset, {r.user_id: r for r in dataset.requests}
+
+    def _validate(self, fact, message_text):
+        from extraction.validate import validate_fact
+
+        dataset, requests_by_user = self._context()
+        messages = {
+            fact.subject: {
+                "message_id": fact.subject,
+                "message_text": message_text,
+            }
+        }
+        return validate_fact(fact, dataset, messages, {}, {}, requests_by_user)
+
+    def test_recurring_expense_increase_without_date_is_kept(self):
+        from engine.types import Fact
+
+        fact = Fact(
+            fact_type="recurring_expense_increase",
+            subject="message_rent",
+            user_id="user_test",
+            percent_change=Decimal("12"),
+            verbatim_quote="increases monthly rent by 12%",
+            source_type="service_provider",
+        )
+        valid, violations = self._validate(
+            fact, "The renewed lease increases monthly rent by 12%."
+        )
+        self.assertIsNotNone(valid)
+        self.assertFalse(any(v.rule == "V10" for v in violations))
+
+    def test_employment_ended_without_date_is_kept(self):
+        from engine.types import Fact
+
+        fact = Fact(
+            fact_type="employment_ended",
+            subject="message_end",
+            user_id="user_test",
+            verbatim_quote="One household employment record has ended.",
+            source_type="employer",
+        )
+        valid, violations = self._validate(
+            fact, "One household employment record has ended."
+        )
+        self.assertIsNotNone(valid)
+        self.assertFalse(any(v.rule == "V10" for v in violations))
+
+    def test_inert_type_with_amount_is_not_dropped_for_having_one(self):
+        """The contract forbids amounts on six types, not on every inert type."""
+        from engine.money import money
+        from engine.types import Fact
+
+        fact = Fact(
+            fact_type="invoice_approved_pending",
+            subject="message_invoice",
+            user_id="user_test",
+            amount=money("2040"),
+            currency="INR",
+            effective_date=date(2025, 8, 15),
+            verbatim_quote="payment of INR 2040",
+            source_type="service_provider",
+        )
+        valid, violations = self._validate(
+            fact, "The client approved a payment of INR 2040."
+        )
+        self.assertIsNotNone(valid)
+        self.assertFalse(any(v.rule == "V10" for v in violations))
+
+    def test_salary_change_without_date_is_still_dropped(self):
+        from engine.money import money
+        from engine.types import Fact
+
+        fact = Fact(
+            fact_type="salary_increase",
+            subject="message_raise",
+            user_id="user_test",
+            amount=money("5000"),
+            currency="INR",
+            verbatim_quote="Your salary is now INR 5000.",
+            source_type="employer",
+        )
+        valid, violations = self._validate(fact, "Your salary is now INR 5000.")
+        self.assertIsNone(valid)
+        self.assertTrue(any(v.rule == "V10" for v in violations))
+
+
+class TestVerbatimQuoteNormalisation(unittest.TestCase):
+    """Typographic punctuation must not defeat the V4 substring check."""
+
+    def test_ascii_quote_matches_curly_apostrophe_source(self):
+        from engine.money import money
+        from engine.types import Dataset, Fact, Profile, Request
+        from extraction.validate import validate_fact
+
+        request = Request(
+            request_id="request_test",
+            user_id="user_test",
+            request_date=date(2025, 8, 1),
+            request_type="purchase",
+            requested_amount=money("1000"),
+            desired_completion_date=date(2025, 10, 1),
+            allows_partial_payment=False,
+            request_text="test",
+        )
+        profile = Profile(
+            user_id="user_test",
+            home_currency="INR",
+            current_available_balance=money("10000"),
+            minimum_balance_to_keep=money("1000"),
+            financial_priorities=(),
+            protected_categories=(),
+            reducible_categories=(),
+            stoppable_categories=(),
+            payment_methods_considered=("full_payment",),
+            max_installment_months=None,
+        )
+        dataset = Dataset(
+            requests=(request,),
+            profiles={"user_test": profile},
+            events_by_user={},
+            options_by_request={},
+            rates={},
+        )
+        messages = {
+            "message_scam": {
+                "message_id": "message_scam",
+                "message_text": "Congratulations! You\u2019ve been selected.",
+            }
+        }
+        fact = Fact(
+            fact_type="windfall_solicitation",
+            subject="message_scam",
+            user_id="user_test",
+            verbatim_quote="You've been selected",  # ASCII, normalised source
+            source_type="financial_service",
+        )
+        valid, violations = validate_fact(
+            fact,
+            dataset,
+            messages,
+            {},
+            {},
+            {r.user_id: r for r in dataset.requests},
+        )
+        self.assertIsNotNone(valid)
+        self.assertFalse(any(v.rule == "V4" for v in violations))
 
 
 if __name__ == "__main__":

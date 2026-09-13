@@ -1,0 +1,76 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:22:35.378877+00:00",
+        "fixture_key": "3311d1c3d0632b43",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "income_ended",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_262",
+      "source_language": "id",
+      "source_type": "employer",
+      "subject": "message_203",
+      "user_id": "user_262",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Salah satu sumber pendapatan kerja rumah tangga telah berakhir."
+    },
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:22:35.378912+00:00",
+        "fixture_key": "3311d1c3d0632b43",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "income_ended",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_262",
+      "source_language": "id",
+      "source_type": "employer",
+      "subject": "message_203",
+      "user_id": "user_262",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Pendapatan yang sudah berakhir harus dikeluarkan dari perkiraan berikutnya."
+    },
+    {
+      "amount": "48260000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "IDR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:22:35.378920+00:00",
+        "fixture_key": "3311d1c3d0632b43",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_262",
+      "source_language": "id",
+      "source_type": "employer",
+      "subject": "message_203",
+      "user_id": "user_262",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Sisa gaji bulanan yang dikonfirmasi adalah IDR 48260000."
+    }
+  ]
+}

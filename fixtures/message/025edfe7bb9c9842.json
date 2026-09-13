@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": "2025-05-23",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:41:14.736082+00:00",
+        "fixture_key": "025edfe7bb9c9842",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_confirmed_unchanged",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_73",
+      "user_id": "user_95",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your confirmed salary is now expected on 2025-05-23."
+    }
+  ]
+}

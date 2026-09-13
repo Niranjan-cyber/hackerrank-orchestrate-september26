@@ -1,0 +1,52 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:16:12.463336+00:00",
+        "fixture_key": "8f3ec96c32e73d7c",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "employment_ended",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_180",
+      "user_id": "user_230",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "One household employment record has ended."
+    },
+    {
+      "amount": "2827",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "EUR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:16:12.463365+00:00",
+        "fixture_key": "8f3ec96c32e73d7c",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_180",
+      "user_id": "user_230",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "EUR 2827"
+    }
+  ]
+}

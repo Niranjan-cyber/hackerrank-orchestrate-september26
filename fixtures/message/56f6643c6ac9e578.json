@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "38760000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "IDR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T02:56:08.011999+00:00",
+        "fixture_key": "56f6643c6ac9e578",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_confirmed_unchanged",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_11",
+      "source_language": "id",
+      "source_type": "employer",
+      "subject": "message_08",
+      "user_id": "user_11",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Gaji pokok yang dikonfirmasi adalah IDR 38760000."
+    }
+  ]
+}

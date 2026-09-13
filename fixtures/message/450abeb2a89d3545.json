@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "702",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "USD",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:19:58.565355+00:00",
+        "fixture_key": "450abeb2a89d3545",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_decrease",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_249",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_195",
+      "user_id": "user_249",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "USD 702"
+    }
+  ]
+}

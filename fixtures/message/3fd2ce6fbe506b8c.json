@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "35200",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "ZAR",
+      "effective_date": "2026-01-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:12:03.685250+00:00",
+        "fixture_key": "3fd2ce6fbe506b8c",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "invoice_approved_pending",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_222",
+      "source_language": "en",
+      "source_type": "service_provider",
+      "subject": "message_173",
+      "user_id": "user_222",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "The client approved an invoice payment of ZAR 35200. Settlement is expected on 2026-01-15"
+    }
+  ]
+}

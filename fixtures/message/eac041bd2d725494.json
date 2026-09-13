@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "38190000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "IDR",
+      "effective_date": "2025-11-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:08:22.111037+00:00",
+        "fixture_key": "eac041bd2d725494",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "id",
+      "source_type": "employer",
+      "subject": "message_156",
+      "user_id": "user_197",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Gaji pertama Anda sebesar IDR 38190000 dijadwalkan pada 2025-11-15"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "627",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "EUR",
+      "effective_date": "2026-07-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:07:24.037075+00:00",
+        "fixture_key": "088a82afd36ed1d3",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_increase",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_151",
+      "user_id": "user_189",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your monthly salary has increased to EUR 627. The change applies from 2026-07-15."
+    }
+  ]
+}

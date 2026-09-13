@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:24:18.169123+00:00",
+        "fixture_key": "db1d7c82dc2b7454",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "prize_claim_processing",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "financial_service",
+      "subject": "message_209",
+      "user_id": "user_268",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your prize claim has been verified and is still in payment processing."
+    }
+  ]
+}

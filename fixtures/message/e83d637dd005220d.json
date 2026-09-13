@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:53:00.965582+00:00",
+        "fixture_key": "e83d637dd005220d",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "unrealized_valuation_notice",
+      "percent_change": null,
+      "related_event_id": "event_21785",
+      "request_id": null,
+      "source_language": "id",
+      "source_type": "financial_service",
+      "subject": "message_185",
+      "user_id": "user_236",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Nilai investasi yang ditampilkan telah turun. Investasi tersebut belum dijual dan tidak ada transaksi tunai."
+    }
+  ]
+}

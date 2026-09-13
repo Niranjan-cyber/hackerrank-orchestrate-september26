@@ -19,40 +19,45 @@ from typing import Iterable
 from engine.money import money, parse_date
 from engine.types import CURRENCIES, Dataset, Event, Fact, Request
 
+from .text import normalize_text
+
 CONTRACT_VERSION = "1.0.0"
+
+# The 25 contract fact types a message may produce. This is the canonical source for
+# both the validator's V1 check and the strict JSON schema sent to the model, so the
+# two can never drift. `image_amount` is deliberately not here: it is emitted by the
+# vision adapter, not by message extraction.
+MESSAGE_FACT_TYPES = (
+    "salary_first",
+    "salary_increase",
+    "salary_decrease",
+    "salary_temporary",
+    "salary_confirmed_unchanged",
+    "income_ended",
+    "employment_ended",
+    "one_time_arrears",
+    "invoice_approved_pending",
+    "refund_pending",
+    "gig_payout_pending",
+    "prize_claim_processing",
+    "bonus_unconfirmed",
+    "windfall_solicitation",
+    "windfall_settled",
+    "investment_sale_settled",
+    "expense_reimbursement_settled",
+    "unrealized_valuation_notice",
+    "recurring_expense_increase",
+    "payment_retry_pending",
+    "disputed_duplicate_charge",
+    "distinct_obligations",
+    "receipt_amount_pointer",
+    "foreign_currency_amount_pending",
+    "internal_transfer",
+)
 
 # 25 message-based fact types + image_amount. The contract counts the message-based
 # enum as 25; image extraction adds one more value used only for blank-amount events.
-FACT_TYPES = frozenset(
-    {
-        "salary_first",
-        "salary_increase",
-        "salary_decrease",
-        "salary_temporary",
-        "salary_confirmed_unchanged",
-        "income_ended",
-        "employment_ended",
-        "one_time_arrears",
-        "invoice_approved_pending",
-        "refund_pending",
-        "gig_payout_pending",
-        "prize_claim_processing",
-        "bonus_unconfirmed",
-        "windfall_solicitation",
-        "windfall_settled",
-        "investment_sale_settled",
-        "expense_reimbursement_settled",
-        "unrealized_valuation_notice",
-        "recurring_expense_increase",
-        "payment_retry_pending",
-        "disputed_duplicate_charge",
-        "distinct_obligations",
-        "receipt_amount_pointer",
-        "foreign_currency_amount_pending",
-        "internal_transfer",
-        "image_amount",
-    }
-)
+FACT_TYPES = frozenset(MESSAGE_FACT_TYPES) | {"image_amount"}
 
 SOURCE_TYPES = frozenset(
     {"employer", "bank", "merchant", "service_provider", "financial_service"}
@@ -65,7 +70,10 @@ INFLOW_INCREASE_TYPES = frozenset(
     {"salary_first", "salary_increase", "one_time_arrears"}
 )
 
-# Facts that must not carry an amount.
+# Facts that must not carry an amount. Exactly the contract's section 3 list - no
+# more. An earlier version also forbade amounts on the Class C/D/E inert types, which
+# the contract never asks for; the engine ignores those types' amounts anyway, so the
+# extra rule only turned valid model output into spurious drops.
 AMOUNT_FORBIDDEN_TYPES = frozenset(
     {
         "salary_confirmed_unchanged",
@@ -74,19 +82,6 @@ AMOUNT_FORBIDDEN_TYPES = frozenset(
         "internal_transfer",
         "unrealized_valuation_notice",
         "distinct_obligations",
-        "invoice_approved_pending",
-        "refund_pending",
-        "gig_payout_pending",
-        "prize_claim_processing",
-        "bonus_unconfirmed",
-        "windfall_solicitation",
-        "windfall_settled",
-        "investment_sale_settled",
-        "expense_reimbursement_settled",
-        "payment_retry_pending",
-        "disputed_duplicate_charge",
-        "receipt_amount_pointer",
-        "foreign_currency_amount_pending",
     }
 )
 
@@ -102,17 +97,24 @@ AMOUNT_REQUIRED_TYPES = frozenset(
     }
 )
 
-# Effective date is required for any fact that moves a stream or expense.
+# Effective date is required where the engine cannot apply the fact without one.
+# `evidence._propose` returns an incomplete amendment for a salary change, a temporary
+# salary or a one-off arrears that carries no date, so those are dropped here rather
+# than passed through as a no-op that could still outrank another fact in the income
+# conflict group.
+#
+# `income_ended`, `employment_ended` and `recurring_expense_increase` are deliberately
+# NOT here. The contract's section 3 does not require a date for them, and the engine
+# already applies the conservative default when one is absent: a stop ends the stream
+# from `request_date`, and an expense increase starts at `request_date`. Dropping them
+# for a missing date would discard conservative evidence, which is the wrong direction.
 DATE_REQUIRED_TYPES = frozenset(
     {
         "salary_first",
         "salary_increase",
         "salary_decrease",
         "salary_temporary",
-        "income_ended",
-        "employment_ended",
         "one_time_arrears",
-        "recurring_expense_increase",
     }
 )
 
@@ -274,7 +276,12 @@ def validate_fact(
         message_row = messages_by_id.get(fact.subject, {})
         source_text = message_row.get("message_text") or ""
 
-    if fact.verbatim_quote and source_text and fact.verbatim_quote not in source_text:
+    # Typographic punctuation is normalised on both sides before the substring test.
+    # The message channel prints curly quotes and dashes that the model returns
+    # inconsistently; normalising a purely typographic set cannot make a fabricated
+    # quote match text that does not contain it.
+    quote = normalize_text(fact.verbatim_quote)
+    if quote and source_text and quote not in normalize_text(source_text):
         violations.append(
             Violation(
                 "V4",

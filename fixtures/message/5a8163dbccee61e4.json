@@ -1,0 +1,52 @@
+{
+  "facts": [
+    {
+      "amount": "30400000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "IDR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:02:15.127268+00:00",
+        "fixture_key": "5a8163dbccee61e4",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "id",
+      "source_type": "employer",
+      "subject": "message_127",
+      "user_id": "user_163",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Gaji rutin Anda untuk penggajian berikutnya adalah IDR 30400000."
+    },
+    {
+      "amount": "13680000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "IDR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:02:15.127297+00:00",
+        "fixture_key": "5a8163dbccee61e4",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "one_time_arrears",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "id",
+      "source_type": "employer",
+      "subject": "message_127",
+      "user_id": "user_163",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "penyesuaian tunggakan satu kali sebesar IDR 13680000"
+    }
+  ]
+}

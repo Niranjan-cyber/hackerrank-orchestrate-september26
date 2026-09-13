@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:26:18.078843+00:00",
+        "fixture_key": "b95a2ca173617098",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "refund_pending",
+      "percent_change": null,
+      "related_event_id": "event_25342",
+      "request_id": "request_275",
+      "source_language": "id",
+      "source_type": "merchant",
+      "subject": "message_215",
+      "user_id": "user_275",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Pengembalian dana sudah diproses, tetapi belum masuk ke rekening Anda."
+    }
+  ]
+}

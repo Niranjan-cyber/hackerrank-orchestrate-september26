@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:41:49.645440+00:00",
+        "fixture_key": "1221d2314446e63e",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "prize_claim_processing",
+      "percent_change": null,
+      "related_event_id": "event_9420",
+      "request_id": "request_101",
+      "source_language": "en",
+      "source_type": "financial_service",
+      "subject": "message_75",
+      "user_id": "user_101",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "The prize proceeds have reached your account after withholding."
+    }
+  ]
+}

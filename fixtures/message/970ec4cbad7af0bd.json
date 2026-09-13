@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:15:54.744382+00:00",
+        "fixture_key": "970ec4cbad7af0bd",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "payment_retry_pending",
+      "percent_change": null,
+      "related_event_id": "event_21101",
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "bank",
+      "subject": "message_179",
+      "user_id": "user_229",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "The previous debit attempt failed."
+    }
+  ]
+}

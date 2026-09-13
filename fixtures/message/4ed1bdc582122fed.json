@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "1528.56",
+      "applies_to_cycles": 1,
+      "confidence": "high",
+      "currency": "EUR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:19:23.961176+00:00",
+        "fixture_key": "4ed1bdc582122fed",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_temporary",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_247",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_193",
+      "user_id": "user_247",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "EUR 1528.56"
+    }
+  ]
+}

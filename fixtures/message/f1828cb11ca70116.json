@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:32:01.761953+00:00",
+        "fixture_key": "f1828cb11ca70116",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "internal_transfer",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_57",
+      "source_language": "en",
+      "source_type": "bank",
+      "subject": "message_41",
+      "user_id": "user_57",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "The matching debit and credit came from a transfer between your two accounts."
+    }
+  ]
+}

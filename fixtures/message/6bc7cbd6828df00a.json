@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:07:02.552640+00:00",
+        "fixture_key": "6bc7cbd6828df00a",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "unrealized_valuation_notice",
+      "percent_change": null,
+      "related_event_id": "event_1960",
+      "request_id": "request_22",
+      "source_language": "en",
+      "source_type": "financial_service",
+      "subject": "message_15",
+      "user_id": "user_22",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your portfolio's displayed market value has increased substantially. No units have been sold and no cash proceeds have been generated."
+    }
+  ]
+}

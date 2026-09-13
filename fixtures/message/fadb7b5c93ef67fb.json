@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "251000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "INR",
+      "effective_date": "2026-01-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:39:13.647501+00:00",
+        "fixture_key": "fadb7b5c93ef67fb",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_87",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_66",
+      "user_id": "user_87",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Regular salary of INR 251000 resumes on 2026-01-15."
+    }
+  ]
+}

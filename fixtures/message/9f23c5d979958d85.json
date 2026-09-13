@@ -1,0 +1,52 @@
+{
+  "facts": [
+    {
+      "amount": "260000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "INR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:20:54.251370+00:00",
+        "fixture_key": "9f23c5d979958d85",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_increase",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_176",
+      "user_id": "user_226",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your regular salary for the next payroll is INR 260000."
+    },
+    {
+      "amount": "117000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "INR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:20:54.251401+00:00",
+        "fixture_key": "9f23c5d979958d85",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "one_time_arrears",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_176",
+      "user_id": "user_226",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "The same payroll includes a one-time arrears adjustment of INR 117000."
+    }
+  ]
+}

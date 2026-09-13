@@ -1,0 +1,52 @@
+{
+  "facts": [
+    {
+      "amount": "1452",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "EUR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:21:26.054148+00:00",
+        "fixture_key": "0722b3a23dfbbaa0",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_28",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_20",
+      "user_id": "user_28",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your regular salary for the next payroll is EUR 1452."
+    },
+    {
+      "amount": "653.40",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "EUR",
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:21:26.054164+00:00",
+        "fixture_key": "0722b3a23dfbbaa0",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "one_time_arrears",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_28",
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_20",
+      "user_id": "user_28",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "The same payroll includes a one-time arrears adjustment of EUR 653.40."
+    }
+  ]
+}

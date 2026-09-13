@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "INR",
+      "effective_date": "2026-04-03",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:38:39.412611+00:00",
+        "fixture_key": "8e09590df3279500",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "receipt_amount_pointer",
+      "percent_change": null,
+      "related_event_id": "event_7941",
+      "request_id": "request_84",
+      "source_language": "en",
+      "source_type": "merchant",
+      "subject": "message_64",
+      "user_id": "user_84",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "BuyBox confirmed that the tote bag order was paid in INR on 3 April 2026."
+    }
+  ]
+}

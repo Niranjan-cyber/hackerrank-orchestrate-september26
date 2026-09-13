@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T02:57:13.727563+00:00",
+        "fixture_key": "7e8e15daa05ceb45",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "income_ended",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "id",
+      "source_type": "employer",
+      "subject": "message_103",
+      "user_id": "user_133",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Kontrak musiman saat ini telah berakhir."
+    }
+  ]
+}

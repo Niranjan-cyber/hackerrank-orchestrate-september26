@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:08:58.983648+00:00",
+        "fixture_key": "f77bd8f8baf7018e",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "bonus_unconfirmed",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_200",
+      "source_language": "id",
+      "source_type": "employer",
+      "subject": "message_159",
+      "user_id": "user_200",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Bonus kuartalan Anda masih menunggu hasil akhir penilaian kinerja. Jumlah akhir dan tanggal pembayaran belum disetujui."
+    }
+  ]
+}

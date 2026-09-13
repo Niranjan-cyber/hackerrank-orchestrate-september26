@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "30780000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "IDR",
+      "effective_date": "2025-08-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:33:11.475850+00:00",
+        "fixture_key": "064df6f14270fa46",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "invoice_approved_pending",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "id",
+      "source_type": "service_provider",
+      "subject": "message_18",
+      "user_id": "user_26",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Klien menyetujui pembayaran faktur sebesar IDR 30780000. Penyelesaian diperkirakan pada 2025-08-15"
+    }
+  ]
+}

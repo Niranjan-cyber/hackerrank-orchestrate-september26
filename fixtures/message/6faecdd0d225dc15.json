@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "696",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "USD",
+      "effective_date": "2025-05-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:35:28.774505+00:00",
+        "fixture_key": "6faecdd0d225dc15",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": "request_71",
+      "source_language": "id",
+      "source_type": "employer",
+      "subject": "message_53",
+      "user_id": "user_71",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Gaji sebesar USD 696 dikonfirmasi untuk 2025-05-15."
+    }
+  ]
+}

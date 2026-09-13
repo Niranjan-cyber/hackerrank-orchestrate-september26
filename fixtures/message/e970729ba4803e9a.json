@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": null,
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": null,
+      "effective_date": null,
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:00:17.048538+00:00",
+        "fixture_key": "e970729ba4803e9a",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "foreign_currency_amount_pending",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "merchant",
+      "subject": "message_118",
+      "user_id": "user_153",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "The bill was charged in a foreign currency. Your bank will confirm the final home-currency amount when the transaction settles."
+    }
+  ]
+}

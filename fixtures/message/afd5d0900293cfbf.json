@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "30400000",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "IDR",
+      "effective_date": "2026-04-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T04:15:37.537294+00:00",
+        "fixture_key": "afd5d0900293cfbf",
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "id",
+      "source_type": "employer",
+      "subject": "message_178",
+      "user_id": "user_228",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Gaji pertama Anda sebesar IDR 30400000."
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "amount": "1284",
+      "applies_to_cycles": null,
+      "confidence": "high",
+      "currency": "USD",
+      "effective_date": "2025-11-15",
+      "extractor": {
+        "contract_version": "1.0.0",
+        "extracted_at": "2026-09-13T03:04:20.123179+00:00",
+        "fixture_key": "59535cd2a22c0323",
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      "fact_type": "salary_first",
+      "percent_change": null,
+      "related_event_id": null,
+      "request_id": null,
+      "source_language": "en",
+      "source_type": "employer",
+      "subject": "message_137",
+      "user_id": "user_173",
+      "verbatim_amount_string": null,
+      "verbatim_quote": "Your salary of USD 1284 is confirmed for 2025-11-15."
+    }
+  ]
+}
