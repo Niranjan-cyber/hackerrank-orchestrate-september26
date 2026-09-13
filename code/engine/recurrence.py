@@ -44,6 +44,25 @@ def default_horizon_end(request: Request, config: Config) -> date:
     return request.request_date + timedelta(days=config.horizon_days)
 
 
+def detect_streams(
+    position: CashPosition,
+    events: tuple[Event, ...],
+    request: Request,
+    profile: Profile,
+    config: Config,
+    rates: Mapping[tuple[str, str, str], Decimal] | None = None,
+) -> tuple[Stream, ...]:
+    """The recurring streams inferred from settled history, as a value.
+
+    Public because ticket 08 needs the streams themselves, not only the occurrences
+    they project: a spending change may cite only an event that belongs to a detected
+    stream, and the id it cites is the stream's most recent settled occurrence. The
+    caller may hand the result back to `projected_effects` / `with_projections` so
+    detection runs once per request rather than once per consumer.
+    """
+    return _detect_streams(position, events, request, profile, config, rates or {})
+
+
 def projected_effects(
     position: CashPosition,
     events: tuple[Event, ...],
@@ -53,6 +72,7 @@ def projected_effects(
     rates: Mapping[tuple[str, str, str], Decimal] | None = None,
     *,
     horizon_end: date | None = None,
+    streams: tuple[Stream, ...] | None = None,
 ) -> tuple[CashEffect, ...]:
     """Return inferred recurring effects for the forecast window.
 
@@ -61,9 +81,12 @@ def projected_effects(
     only when a stream contains a foreign-currency event. `horizon_end` overrides the
     default `request_date + config.horizon_days`, so a caller evaluating a plan that
     reaches past the base window can project recurring spend across the whole plan.
+    `streams` supplies an already-detected set, so a caller that needs the streams for
+    its own purposes does not pay for detection twice.
     """
     rates = rates or {}
-    streams = _detect_streams(position, events, request, profile, config, rates)
+    if streams is None:
+        streams = _detect_streams(position, events, request, profile, config, rates)
     explicit = _explicit_suppression_set(position, events)
     projected: list[CashEffect] = []
     horizon_end = horizon_end or default_horizon_end(request, config)
@@ -83,6 +106,7 @@ def with_projections(
     rates: Mapping[tuple[str, str, str], Decimal] | None = None,
     *,
     horizon_end: date | None = None,
+    streams: tuple[Stream, ...] | None = None,
 ) -> CashPosition:
     """Return a position with inferred streams merged in and its horizon recorded.
 
@@ -93,7 +117,14 @@ def with_projections(
     """
     horizon_end = horizon_end or default_horizon_end(request, config)
     projected = projected_effects(
-        position, events, request, profile, config, rates, horizon_end=horizon_end
+        position,
+        events,
+        request,
+        profile,
+        config,
+        rates,
+        horizon_end=horizon_end,
+        streams=streams,
     )
     if projected:
         position = replace(
@@ -112,8 +143,15 @@ def with_projections(
 
 
 @dataclass(frozen=True, slots=True)
-class _RecurrenceStream:
-    """One detected recurring stream ready for projection."""
+class Stream:
+    """One detected recurring stream ready for projection.
+
+    `latest_event_id` is the stream's most recent settled occurrence before
+    `request_date` - the id a spending change must cite (CONTEXT.md section 10).
+    `latest_amount` is what one projected occurrence costs in home currency: the
+    latest observed amount for a fixed stream, the forecast monthly total for a
+    variable one.
+    """
 
     stream_key: tuple[str, str, str, str]
     # category, direction, event_type, normalized_description
@@ -171,7 +209,7 @@ def _detect_streams(
     profile: Profile,
     config: Config,
     rates: Mapping[tuple[str, str, str], Decimal],
-) -> tuple[_RecurrenceStream, ...]:
+) -> tuple[Stream, ...]:
     historical = _historical_events(position, events, request.request_date, config)
     fixed = _detect_fixed_streams(historical, profile, config, rates)
     variable = _detect_variable_streams(historical, profile, config, rates)
@@ -208,7 +246,7 @@ def _detect_fixed_streams(
     profile: Profile,
     config: Config,
     rates: Mapping[tuple[str, str, str], Decimal],
-) -> list[_RecurrenceStream]:
+) -> list[Stream]:
     """Monthly fixed streams keyed on day of month.
 
     Semi-monthly patterns (e.g. 1st and 15th salary) naturally become two streams
@@ -238,7 +276,7 @@ def _detect_fixed_streams(
             else:
                 desc_groups.append((base_key + (norm,), [event]))
 
-    streams: list[_RecurrenceStream] = []
+    streams: list[Stream] = []
     for key, group in desc_groups:
         # Cluster observed days-of-month using the monthly tolerance ladder so that
         # a stream that lands on slightly different days still groups together.
@@ -288,7 +326,7 @@ def _detect_variable_streams(
     profile: Profile,
     config: Config,
     rates: Mapping[tuple[str, str, str], Decimal],
-) -> list[_RecurrenceStream]:
+) -> list[Stream]:
     """Variable essential categories forecast as a conservative monthly total."""
     by_key: dict[tuple[str, str, str], list[Event]] = {}
     for event in historical:
@@ -297,7 +335,7 @@ def _detect_variable_streams(
         key = (event.category, event.direction, event.event_type)
         by_key.setdefault(key, []).append(event)
 
-    streams: list[_RecurrenceStream] = []
+    streams: list[Stream] = []
     for key, group in by_key.items():
         if len(group) < config.min_occurrences:
             continue
@@ -316,7 +354,7 @@ def _detect_variable_streams(
         placement_day = min(e.cash_date.day for e in group)
         norm = _normalize_description(latest.description)
         streams.append(
-            _RecurrenceStream(
+            Stream(
                 stream_key=(key[0], key[1], key[2], norm),
                 latest_event_id=latest.event_id,
                 latest_amount=monthly_total,
@@ -357,14 +395,14 @@ def _stream_from_events(
     rates: Mapping[tuple[str, str, str], Decimal],
     is_variable: bool,
     monthly_total: Decimal | None = None,
-) -> _RecurrenceStream:
+) -> Stream:
     latest = max(events, key=lambda e: (e.cash_date, e.event_id))
     amount = (
         monthly_total
         if monthly_total is not None
         else _home_amount(latest, home_currency, rates)
     )
-    return _RecurrenceStream(
+    return Stream(
         stream_key=key,
         latest_event_id=latest.event_id,
         latest_amount=amount,
@@ -381,7 +419,7 @@ def _stream_from_events(
 
 
 def _project_stream(
-    stream: _RecurrenceStream,
+    stream: Stream,
     request_date: date,
     horizon_end: date,
     explicit: set[tuple[str, str, str, date]],
@@ -432,6 +470,7 @@ def _project_stream(
                         reason_code=reason,
                         category=stream.category,
                         flexibility=stream.flexibility,
+                        source_event_id=stream.latest_event_id,
                     )
                 )
         # advance one month

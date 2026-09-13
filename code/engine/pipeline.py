@@ -13,15 +13,16 @@ body of `_decide` without touching anything around it. Implemented so far:
   04  cash-state classification and the event lifecycle          (committed)
   05  recurrence detection and projection                        (committed)
   06  the 90-day simulation, amount_safe_to_pay, earliest date   (committed)
-  07  candidate plans and lexicographic ranking                  (this change)
+  07  candidate plans and lexicographic ranking                  (committed)
+  08  spending changes and the pruning rule                      (this change)
 
 Still to come, and deliberately absent here:
 
-  08  spending changes and the pruning rule - every candidate `plans` builds today
-      has `needs_spending_changes = False`, and level 2 of the rank key is already
-      in place waiting for the change-variants
   09  reason codes and rendered explanations - the `_explain*` renderers at the foot
-      of this file are the placeholder
+      of this file are the placeholder. Ticket 08 left two things for it: the amounts
+      are printed without the thousands separators the samples use ("INR 50200", not
+      "INR 50,200"), and the change clauses are rendered from `SPENDING_CHANGE_*`
+      reason codes, which is the shape ticket 09 generalises.
   10  evidence authority and conflict precedence
 """
 
@@ -30,8 +31,9 @@ from __future__ import annotations
 from .cash import UnresolvedAmountError, cash_position
 from .money import ZERO, format_plan_amount
 from .plans import best_plan, candidate_plans, required_horizon_end
-from .recurrence import default_horizon_end, with_projections
+from .recurrence import default_horizon_end, detect_streams, with_projections
 from .simulate import amount_safe_to_pay, earliest_date_for_full_payment
+from .spending import eligible_changes
 from .types import Config, Dataset, Fact, OutputRow, Reason
 
 
@@ -88,14 +90,20 @@ def _decide(
     needed = required_horizon_end(request, profile, options, config)
     if needed is not None and needed > horizon:
         horizon = needed
+    events = dataset.events_by_user.get(request.user_id, ())
+    # Detected once and used twice: ticket 05 projects the streams forward, and ticket
+    # 08 needs the streams themselves, because only an event that belongs to one may
+    # be cited as a spending change.
+    streams = detect_streams(position, events, request, profile, config, dataset.rates)
     position = with_projections(
         position,
-        dataset.events_by_user.get(request.user_id, ()),
+        events,
         request,
         profile,
         config,
         dataset.rates,
         horizon_end=horizon,
+        streams=streams,
     )
 
     # --- Ticket 06: simulate the fixed 90-day window ------------------------------
@@ -192,6 +200,16 @@ def _decide(
     # request, the certified position and the two capacity figures, and renders
     # whatever comes back. Adding ticket 08's spending-change variants means adding
     # candidates there, not another branch here.
+    # --- Ticket 08: what the user has permitted themselves to change ---------------
+    # Offered to the generator, not applied here. `plans` decides whether the request
+    # needs them at all, and the ledger still certifies whatever comes back.
+    changes = eligible_changes(
+        streams,
+        {event.event_id: event for event in events},
+        profile,
+        dataset.rates,
+    )
+
     candidates = candidate_plans(
         request,
         profile,
@@ -200,6 +218,7 @@ def _decide(
         config,
         safe=safe,
         earliest=earliest,
+        changes=changes,
     )
     reasons.extend(candidates.reasons)
     chosen = best_plan(candidates.plans)
@@ -277,8 +296,51 @@ def _explain_not_recommended(request, profile, safe) -> str:
     )
 
 
+def _change_clauses(plan, profile) -> str:
+    """ "Stop the online backup subscription and reduce the streaming subscription..."
+
+    The commitment names come off the plan's own reason codes, so the sentence is
+    rendered from engine state rather than re-derived from the dataset (D11/D14).
+    """
+    clauses = []
+    for reason in plan.reasons:
+        name = reason.detail.strip().lower() or "this recurring expense"
+        if reason.code == "SPENDING_CHANGE_STOP":
+            clauses.append(f"stop the {name}")
+        elif reason.code == "SPENDING_CHANGE_REDUCE":
+            # The target is quoted in the commitment's own currency, not the home one:
+            # it is the dataset's `minimum_allowed_amount` for that event, and the
+            # output column cites the same number.
+            clauses.append(
+                f"reduce the {name} to {reason.currency or profile.home_currency} "
+                f"{format_plan_amount(reason.amount)}"
+            )
+    if not clauses:  # defensive: a change plan always carries its change reasons
+        return ""
+    if len(clauses) == 1:
+        return clauses[0]
+    return ", ".join(clauses[:-1]) + f" and {clauses[-1]}"
+
+
 def _explain(plan, request, profile) -> str:
-    """Render the winning plan. Ticket 09 replaces this with reason-code rendering."""
+    """Render the winning plan. Ticket 09 replaces this with reason-code rendering.
+
+    A spending-change plan is the method's own sentence with the changes in front of
+    it - "Stop the family streaming plan, then pay EUR 620.40 on 2026-01-03." - rather
+    than a sentence of its own, so that the method still describes itself. An
+    installment plan funded by a change therefore still says it is three payments,
+    which a single hard-coded "then pay X today" tail would have got wrong.
+    """
+    body = _explain_method(plan, request, profile)
+    if not plan.needs_spending_changes:
+        return body
+    changes = _change_clauses(plan, profile)
+    if not changes:
+        return body
+    return f"{changes[0].upper()}{changes[1:]}, then {body[0].lower()}{body[1:]}"
+
+
+def _explain_method(plan, request, profile) -> str:
     if plan.method == "full_payment":
         return _explain_now(request, profile)
     if plan.method == "wait":

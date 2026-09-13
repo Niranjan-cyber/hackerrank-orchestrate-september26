@@ -28,10 +28,23 @@ kept only if `Ledger.holds_floor`. `amount_safe_to_pay` and
 `earliest_date_for_full_payment` are used to *generate* candidates, never to certify
 them: the ledger is the sole safety predicate (CONTEXT.md section 7).
 
-SCOPE - WHAT IS DELIBERATELY ABSENT
-Spending changes are ticket 08. Every plan this module builds has
-`needs_spending_changes = False`; level 2 of the key is already present and load-
-bearing, so ticket 08 adds change-variant candidates and changes nothing here.
+SPENDING CHANGES ARE A LAST RESORT, AND THE RULE IS A BICONDITIONAL
+Change-set variants are expanded **if and only if** no safe no-change plan completes
+the full request by `desired_completion_date`. Both halves are load-bearing:
+
+  forward   a no-change plan that completes has rank key (0, 0, ...), while every
+            change variant carries `needs_spending_changes = 1` and loses at level 2
+            at the latest. Expanding variants could therefore never change the answer,
+            only the runtime - and offering a change the user does not need is wrong
+            on its own terms.
+  converse  samples 06, 11 and 21 all have an `earliest` date *after* the deadline, so
+            nothing completes without changes and the variants win at level 1. Naive
+            pruning ("only look for changes when no plan exists at all") loses all
+            three, because a late `wait` plan does exist for each of them.
+
+Which set of changes gets used is `spending.change_sets`, which orders them
+smallest-saving-first; this module only walks that order and keeps the first set the
+ledger certifies, for a full payment today or for a supplied installment schedule.
 """
 
 from __future__ import annotations
@@ -45,6 +58,14 @@ from typing import Sequence
 from .cash import CashPosition, UnresolvedAmountError
 from .money import ZERO
 from .simulate import ProjectionHorizonError, simulate
+from .spending import (
+    STOP,
+    SpendingChange,
+    apply_changes,
+    change_sets,
+    render_changes,
+    total_saving,
+)
 from .types import Config, PaymentOption, Profile, Reason, Request
 
 # Status for each method. `affordable_now` is reachable only through `full_payment`,
@@ -56,6 +77,13 @@ STATUS_FOR_METHOD = {
     "installments": "affordable_with_plan",
     "wait": "affordable_later",
 }
+
+# A plan that only works because the user changed their spending is completed "through
+# permitted spending changes", which AGENTS.md section 6.2 defines as
+# `affordable_with_plan` - so a change-funded full payment today is NOT
+# `affordable_now`. Samples 06, 11 and 21 all publish exactly that pairing:
+# `full_payment` on `request_date` with status `affordable_with_plan`.
+STATUS_WITH_CHANGES = "affordable_with_plan"
 
 _TRAILING_NUMBER = re.compile(r"(\d+)$")
 
@@ -292,6 +320,7 @@ def candidate_plans(
     *,
     safe: Decimal,
     earliest: date | None,
+    changes: Sequence[SpendingChange] = (),
 ) -> Candidates:
     """Every eligible, ledger-certified way to complete this request.
 
@@ -300,7 +329,12 @@ def candidate_plans(
     per request, before and independently of any payment-method preference. They are
     never used as a safety proof: every candidate below is re-simulated.
 
-    The four generators run in a fixed order and each option is visited in
+    `changes` is what the user has permitted (ticket 08). It is consulted only after
+    the four no-change generators have run and only if none of them produced a plan
+    that completes by the deadline - see the module docstring for why that condition
+    is an iff rather than a shortcut.
+
+    The generators run in a fixed order and each option is visited in
     `payment_option_id` order, so the candidate tuple is identical run to run.
     """
     accepted = frozenset(profile.payment_methods_considered)
@@ -310,6 +344,8 @@ def candidate_plans(
     builder.add_partial_payment(accepted, safe, earliest)
     builder.add_installments(accepted, options)
     builder.add_wait(accepted, earliest)
+    if not builder.anything_completes_by_deadline:
+        builder.add_spending_change_variants(accepted, changes, options, safe)
 
     return builder.result()
 
@@ -333,6 +369,11 @@ class _CandidateBuilder:
 
     def result(self) -> Candidates:
         return Candidates(plans=tuple(self._plans), reasons=tuple(self._reasons))
+
+    @property
+    def anything_completes_by_deadline(self) -> bool:
+        """The whole of the ticket-08 pruning condition, in one place."""
+        return any(plan.completes_by_deadline for plan in self._plans)
 
     # --- the four generators -------------------------------------------------------
 
@@ -441,6 +482,93 @@ class _CandidateBuilder:
             completes_by_deadline=completes,
         )
 
+    def add_spending_change_variants(
+        self,
+        accepted: frozenset[str],
+        changes: Sequence[SpendingChange],
+        options: Sequence[PaymentOption],
+        safe: Decimal,
+    ) -> None:
+        """Unlock the request with the smallest set of changes the user permits.
+
+        TWO METHODS ARE BUILT, AND THE OTHER TWO CANNOT BE
+        A full payment on `request_date`, and any supplied installment option that
+        passed the screen. `AGENTS.md` section 6.2 names both as ways a request is
+        "completed through ... permitted spending changes", and 48 of the users whose
+        requests find no plan do not accept `full_payment` at all, so restricting this
+        to full payments would leave them a `not_recommended` they could act on.
+
+        `wait` and `partial_payment` genuinely cannot be expressed: `wait` must be paid
+        on `earliest_date_for_full_payment` and `partial_payment`'s first payment must
+        equal `amount_safe_to_pay`, and both of those columns are published *before*
+        optional spending changes, so a change-funded earlier date or larger first
+        payment would contradict the row reporting it.
+
+        THE SHORTFALL GATE APPLIES TO THE FULL PAYMENT ONLY
+        `requested_amount - amount_safe_to_pay` is the shortfall for paying the whole
+        amount today and means nothing for a schedule spread over three months, so the
+        installment variants are certified against the ledger alone. Sets are still
+        walked smallest-saving-first for both, and the first set that yields any plan
+        wins - asking for the least change is the principle, whichever method it buys.
+        Samples 06, 11 and 21 are all the full-payment shape.
+        """
+        request = self._request
+        if not changes:
+            self._note("NO_PERMITTED_SPENDING_CHANGE")
+            return
+
+        # Already screened once by `add_installments`, whose pruning reasons are
+        # recorded; re-screening here is a pure function of the same inputs and its
+        # reasons would be duplicates.
+        screened, _ = screen_options(request, self._profile, options, self._config)
+        shortfall = request.requested_amount - safe
+        # `safe == requested_amount` means the full payment was already generated, or
+        # refused for a reason no spending change can fix.
+        full_payment_possible = "full_payment" in accepted and shortfall > ZERO
+        if not full_payment_possible and not screened:
+            self._note("NO_METHOD_A_SPENDING_CHANGE_COULD_UNLOCK")
+            return
+
+        covering = 0
+        for chosen in change_sets(changes, self._config.max_spending_changes):
+            changed = apply_changes(self._position, chosen)
+            before = len(self._plans)
+            if full_payment_possible and total_saving(chosen) >= shortfall:
+                covering += 1
+                self._certify(
+                    method="full_payment",
+                    payments=((request.request_date, request.requested_amount),),
+                    total_paid=request.requested_amount,
+                    completes_by_deadline=(
+                        request.request_date <= request.desired_completion_date
+                    ),
+                    position=changed,
+                    spending_changes=chosen,
+                )
+            for entry in screened:
+                self._certify(
+                    method="installments",
+                    payments=entry.schedule,
+                    total_paid=entry.option.total_payable_amount,
+                    completes_by_deadline=entry.completes_by_deadline,
+                    payment_option_id=entry.option.payment_option_id,
+                    position=changed,
+                    spending_changes=chosen,
+                )
+            if len(self._plans) > before:
+                return
+
+        # Two different findings, and ticket 09 should be able to tell them apart:
+        # nothing the user permits adds up to the shortfall, versus something does but
+        # the saving lands after the day the floor is breached.
+        self._note(
+            "NO_SUFFICIENT_SPENDING_CHANGE_SET"
+            if covering == 0 and not screened
+            else "NO_CERTIFIED_SPENDING_CHANGE_SET",
+            amount=shortfall,
+            detail=f"{covering} permitted change set(s) covered the shortfall",
+        )
+
     # --- certification -------------------------------------------------------------
 
     def _certify(
@@ -451,14 +579,22 @@ class _CandidateBuilder:
         total_paid: Decimal,
         completes_by_deadline: bool,
         payment_option_id: str | None = None,
+        position: CashPosition | None = None,
+        spending_changes: Sequence[SpendingChange] = (),
     ) -> None:
         """Re-simulate the candidate and keep it only if the ledger holds the floor.
 
         This is the step that makes "pruned before ranking" true rather than a comment.
+
+        `position` overrides the request's own cash position, which is how a spending
+        change is certified: the changed forecast goes through the *same* floor test as
+        every other candidate. A sufficient saving is necessary but never sufficient -
+        a change that lands after the breach it was meant to prevent does not certify.
         """
         label = payment_option_id or method
+        position = self._position if position is None else position
         try:
-            ledger = simulate(self._position, self._config, extra_debits=payments)
+            ledger = simulate(position, self._config, extra_debits=payments)
         except ProjectionHorizonError:
             # The plan runs past the window ticket 05 projected recurring spend across,
             # so certifying it would mean certifying an unseen stretch of the forecast.
@@ -485,16 +621,20 @@ class _CandidateBuilder:
             Plan(
                 request_id=self._request.request_id,
                 method=method,
-                status=STATUS_FOR_METHOD[method],
+                status=(
+                    STATUS_WITH_CHANGES
+                    if spending_changes
+                    else STATUS_FOR_METHOD[method]
+                ),
                 payments=payments,
                 total_paid=total_paid,
                 completes_by_deadline=completes_by_deadline,
-                # Ticket 08 owns spending changes. Until then a candidate either needs
-                # none or is not generated, and level 2 of the key is set explicitly so
-                # that adding change-variants changes nothing in this module.
-                needs_spending_changes=False,
+                needs_spending_changes=bool(spending_changes),
                 payment_option_id=payment_option_id,
-                reasons=_plan_reasons(method, total_paid, ledger, payment_option_id),
+                spending_changes=render_changes(spending_changes),
+                reasons=_plan_reasons(
+                    method, total_paid, ledger, payment_option_id, spending_changes
+                ),
             )
         )
 
@@ -509,12 +649,29 @@ def _plan_reasons(
     total_paid: Decimal,
     ledger,
     payment_option_id: str | None,
+    spending_changes: Sequence[SpendingChange] = (),
 ) -> tuple[Reason, ...]:
     """Provenance carried by a candidate. Ticket 09 renders the winner's entries."""
     reasons: list[Reason] = []
     if payment_option_id is not None:
         reasons.append(
             Reason(code="PLAN_MATCHES_SUPPLIED_OPTION", detail=payment_option_id)
+        )
+    for change in spending_changes:
+        # The description travels with the code so an explanation can name the
+        # commitment ("the family streaming plan") without re-reading the dataset.
+        reasons.append(
+            Reason(
+                code=(
+                    "SPENDING_CHANGE_STOP"
+                    if change.action == STOP
+                    else "SPENDING_CHANGE_REDUCE"
+                ),
+                event_id=change.event_id,
+                amount=change.new_amount,
+                currency=change.currency,
+                detail=change.description,
+            )
         )
     reasons.append(Reason(code="PLAN_TOTAL_PAYABLE", amount=total_paid, detail=method))
     reasons.append(

@@ -88,7 +88,13 @@ class RealDatasetCoverageTest(unittest.TestCase):
         for event in priced:
             home = self.dataset.profiles[event.user_id].home_currency
             self.assertGreater(
-                convert(event.amount, event.currency, home, event.cash_date, self.dataset.rates),
+                convert(
+                    event.amount,
+                    event.currency,
+                    home,
+                    event.cash_date,
+                    self.dataset.rates,
+                ),
                 0,
                 event.event_id,
             )

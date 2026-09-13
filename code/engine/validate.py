@@ -21,7 +21,7 @@ import csv
 from dataclasses import dataclass
 from pathlib import Path
 
-from .money import ZERO, format_date, format_plan_amount, format_safe_amount
+from .money import ZERO, format_date, format_plan_amount, format_safe_amount, money
 from .types import (
     AFFORDABILITY_STATUSES,
     OUTPUT_COLUMNS,
@@ -136,14 +136,101 @@ def validate_row(row: OutputRow, dataset: Dataset) -> tuple[Violation, ...]:
             )
 
     # 11. spending changes
-    if len(row.spending_changes_needed) > 3:
-        fail("changes_count", "at most three spending changes are allowed")
+    _check_spending_changes(row, dataset, request, fail)
 
     # explanation must exist - it is a graded column
     if not row.decision_explanation.strip():
         fail("explanation", "decision_explanation is empty")
 
     return tuple(found)
+
+
+def _check_spending_changes(row: OutputRow, dataset: Dataset, request, fail) -> None:
+    """Output invariant 11, in full (CONTEXT.md section 11).
+
+    This is the last line of defence on the one column the engine writes about the
+    *user's own* money rather than the seller's: an entry here is an instruction to
+    cancel or shrink something they depend on. Every clause is re-checked against the
+    dataset row, not against the engine value that produced it, so a bug in eligibility
+    surfaces as a violation instead of as advice to stop paying the rent.
+    """
+    changes = row.spending_changes_needed
+    if not changes:
+        return
+    if len(changes) > 3:
+        fail("changes_count", "at most three spending changes are allowed")
+
+    profile = dataset.profiles[request.user_id]
+    events = {
+        event.event_id: event
+        for event in dataset.events_by_user.get(request.user_id, ())
+    }
+    seen: set[str] = set()
+    stop_seen_after_reduce = False
+    reduce_seen = False
+
+    for entry in changes:
+        parts = entry.split(":")
+        action, event_id = parts[0], parts[1] if len(parts) > 1 else ""
+        if action not in ("stop", "reduce_to"):
+            fail("changes_format", f"unknown spending change action in {entry!r}")
+            continue
+        if action == "reduce_to":
+            reduce_seen = True
+            if len(parts) != 3:
+                fail("changes_format", f"reduce_to needs an amount: {entry!r}")
+                continue
+        elif reduce_seen:
+            stop_seen_after_reduce = True
+
+        event = events.get(event_id)
+        if event is None:
+            fail("changes_event", f"{event_id} is not one of this user's events")
+            continue
+        if event_id in seen:
+            fail("changes_event", f"{event_id} is changed twice")
+        seen.add(event_id)
+
+        if event.category in profile.protected_categories:
+            fail("changes_protected", f"{event.category} is a protected category")
+        permitted = (
+            profile.stoppable_categories
+            if action == "stop"
+            else profile.reducible_categories
+        )
+        if event.category not in permitted:
+            fail(
+                "changes_permission",
+                f"the user has not agreed to {action} {event.category}",
+            )
+        allowed_flexibility = (
+            ("stoppable", "reducible_or_stoppable")
+            if action == "stop"
+            else ("reducible", "reducible_or_stoppable")
+        )
+        if event.flexibility not in allowed_flexibility:
+            fail(
+                "changes_flexibility",
+                f"{event_id} is {event.flexibility}, which cannot be {action}ped",
+            )
+        if action == "reduce_to":
+            # `money` rather than `Decimal`: D22 says this module returns violations
+            # and never raises, and `Decimal("")` raises. A malformed amount must
+            # become one row's violation, not the end of the batch.
+            target = money(parts[2])
+            if event.minimum_allowed_amount is None:
+                fail("changes_minimum", f"{event_id} has no minimum_allowed_amount")
+            elif target is None:
+                fail("changes_format", f"{parts[2]!r} is not a valid amount")
+            elif target < event.minimum_allowed_amount:
+                fail(
+                    "changes_minimum",
+                    f"{parts[2]} is below {event_id}'s minimum "
+                    f"{event.minimum_allowed_amount}",
+                )
+
+    if stop_seen_after_reduce:
+        fail("changes_order", "stop entries must precede reduce_to entries")
 
 
 def _matches_an_option(row: OutputRow, options, max_installment_months) -> bool:

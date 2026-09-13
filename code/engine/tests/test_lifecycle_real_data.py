@@ -112,7 +112,11 @@ EXPECTED_PATTERNS = {
         EXCLUDED,
         IN_OPENING_BALANCE,
     ),
-    ("settled/debit/expense", "pending/credit/refund"): (8, IN_OPENING_BALANCE, EXCLUDED),
+    ("settled/debit/expense", "pending/credit/refund"): (
+        8,
+        IN_OPENING_BALANCE,
+        EXCLUDED,
+    ),
     ("failed/debit/debt_payment", "scheduled/debit/debt_payment"): (
         7,
         EXCLUDED,
@@ -145,11 +149,15 @@ class LifecyclePatternTest(unittest.TestCase):
             key = (shape(parent), shape(child))
             self.assertIn(key, EXPECTED_PATTERNS, f"undocumented pattern {key}")
             _, parent_state, child_state = EXPECTED_PATTERNS[key]
-            self.assertEqual(effects[parent.event_id].state, parent_state, parent.event_id)
+            self.assertEqual(
+                effects[parent.event_id].state, parent_state, parent.event_id
+            )
             self.assertEqual(effects[child.event_id].state, child_state, child.event_id)
             seen[key] = seen.get(key, 0) + 1
 
-        self.assertEqual(seen, {key: value[0] for key, value in EXPECTED_PATTERNS.items()})
+        self.assertEqual(
+            seen, {key: value[0] for key, value in EXPECTED_PATTERNS.items()}
+        )
 
     def test_a_failed_retry_counts_the_scheduled_child_not_the_failed_parent(self):
         effects = effects_by_event_id()
@@ -257,7 +265,9 @@ class NettingTest(unittest.TestCase):
         for user_id in ("user_18", "user_33", "user_57", "user_171", "user_273"):
             events = dataset.events_by_user[user_id]
             credit_amounts = {
-                e.amount for e in events if e.direction == "credit" and e.amount is not None
+                e.amount
+                for e in events
+                if e.direction == "credit" and e.amount is not None
             }
             offsetting = [
                 e

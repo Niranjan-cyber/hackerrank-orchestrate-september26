@@ -150,6 +150,13 @@ class CashEffect:
     # value, which ticket 08 would read as "this expense may never be reduced".
     category: str
     flexibility: str
+    # For an inferred occurrence (ticket 05), the dataset event the stream was
+    # detected from - its most recent settled occurrence. `None` for an explicit row,
+    # whose own `event_id` is already the dataset id. Ticket 08 needs the link to
+    # apply a spending change to every occurrence of one stream, and a real field
+    # rather than a parse of the synthesised `event_id` string keeps the two ends
+    # from drifting apart.
+    source_event_id: str | None = None
 
     @property
     def signed_amount(self) -> Decimal:

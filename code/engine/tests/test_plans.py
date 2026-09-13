@@ -18,12 +18,14 @@ from decimal import Decimal
 from engine.cash import cash_position
 from engine.pipeline import run_pipeline
 from engine.plans import (
+    best_plan,
     candidate_plans,
     installment_schedule,
     required_horizon_end,
 )
-from engine.recurrence import with_projections
+from engine.recurrence import detect_streams, with_projections
 from engine.simulate import amount_safe_to_pay, earliest_date_for_full_payment, simulate
+from engine.spending import eligible_changes
 from engine.types import Config, Dataset
 
 from .support import make_event, make_payment_option, make_profile, make_request
@@ -43,8 +45,21 @@ def candidates(request, profile, events=(), options=(), config=None):
     earliest = earliest_date_for_full_payment(
         position, config, request.requested_amount
     )
+    streams = detect_streams(
+        cash_position(request, profile, events, {}), events, request, profile, config
+    )
+    changes = eligible_changes(
+        streams, {event.event_id: event for event in events}, profile
+    )
     return candidate_plans(
-        request, profile, options, position, config, safe=safe, earliest=earliest
+        request,
+        profile,
+        options,
+        position,
+        config,
+        safe=safe,
+        earliest=earliest,
+        changes=changes,
     )
 
 
@@ -610,6 +625,281 @@ class MalformedOptionTest(unittest.TestCase):
         result = candidates(request, profile, options=(broken,))
         self.assertNotIn("installments", methods(result))
         self.assertIn("OPTION_HAS_NO_PAYMENTS", {r.code for r in result.reasons})
+
+
+# --- ticket 08: the pruning rule ----------------------------------------------------
+
+# 7,000 against a 2,000 floor, a 2,500/month streaming subscription the user is willing
+# to stop, and 10,000 of salary landing on the 25th. The subscription drags the
+# February balance to 4,500, so only 2,500 of the 5,000 request is safe today and the
+# full amount is not safe until the salary arrives on the 25th. Stopping the
+# subscription lifts today's headroom by exactly the 2,500 shortfall.
+STREAMING_SQUEEZE = tuple(
+    dict(
+        event_id=f"event_stream_{index}",
+        event_type="subscription",
+        description="Family streaming plan",
+        category="streaming",
+        flexibility="stoppable",
+        amount="2500",
+        event_date=f"{month}-10",
+        settlement_date=f"{month}-10",
+    )
+    for index, month in enumerate(("2024-11", "2024-12", "2025-01"))
+) + (
+    dict(
+        event_id="event_salary",
+        event_type="income",
+        status="scheduled",
+        direction="credit",
+        amount="10000",
+        event_date="2025-02-25",
+        settlement_date="2025-02-25",
+    ),
+)
+
+
+def squeezed_profile(**overrides):
+    return make_profile(
+        balance="7000",
+        minimum="2000",
+        stoppable_categories=("streaming",),
+        **overrides,
+    )
+
+
+class SpendingChangePruningRuleTest(unittest.TestCase):
+    """Expand change-set variants **iff** no safe no-change plan meets the deadline.
+
+    The biconditional is the whole ticket. The forward half is an efficiency and a
+    correctness rule at once - a no-change plan that completes already wins levels 1
+    and 2, so a change variant could never beat it and must not be offered. The
+    converse is what samples 06, 11 and 21 are: `earliest` falls *after* the deadline,
+    so nothing completes without changes, and naive pruning would lose all three.
+    """
+
+    def setUp(self):
+        self.events = tuple(make_event(**row) for row in STREAMING_SQUEEZE)
+        self.profile = squeezed_profile()
+
+    def test_the_scenario_really_is_short_and_really_is_late(self):
+        """Guard the fixture: without it the two tests below could pass vacuously."""
+        config = Config()
+        position = build_position(
+            make_request(request_date="2025-02-01", requested_amount="5000"),
+            self.profile,
+            self.events,
+            config,
+        )
+        request = make_request(request_date="2025-02-01", requested_amount="5000")
+        self.assertEqual(
+            amount_safe_to_pay(position, config, request.requested_amount),
+            Decimal("2500"),
+        )
+        self.assertEqual(
+            earliest_date_for_full_payment(position, config, request.requested_amount),
+            date(2025, 2, 25),
+        )
+
+    def test_changes_are_offered_when_nothing_completes_by_the_deadline(self):
+        request = make_request(
+            request_date="2025-02-01",
+            requested_amount="5000",
+            desired_completion_date="2025-02-10",
+        )
+
+        result = candidates(request, self.profile, self.events)
+        winner = best_plan(result.plans)
+
+        self.assertEqual(winner.method, "full_payment")
+        self.assertEqual(winner.status, "affordable_with_plan")
+        self.assertTrue(winner.needs_spending_changes)
+        self.assertEqual(winner.spending_changes, ("stop:event_stream_2",))
+        self.assertEqual(winner.payments, ((date(2025, 2, 1), Decimal("5000")),))
+        # It beat the late `wait` at level 1, which is the point of generating it.
+        late = plan_for(result, "wait")
+        self.assertFalse(late.completes_by_deadline)
+        self.assertTrue(winner.completes_by_deadline)
+
+    def test_changes_are_never_offered_when_a_no_change_plan_completes(self):
+        """Same user, same shortfall - only the deadline moves past `earliest`."""
+        request = make_request(
+            request_date="2025-02-01",
+            requested_amount="5000",
+            desired_completion_date="2025-03-01",
+        )
+
+        result = candidates(request, self.profile, self.events)
+        winner = best_plan(result.plans)
+
+        self.assertEqual(winner.method, "wait")
+        self.assertEqual(winner.spending_changes, ())
+        self.assertFalse(any(plan.needs_spending_changes for plan in result.plans))
+
+    def test_a_change_plan_is_not_offered_when_no_permitted_set_is_sufficient(self):
+        """The user is willing, but 2,500 of savings cannot close a 4,000 shortfall."""
+        request = make_request(
+            request_date="2025-02-01",
+            requested_amount="6500",
+            desired_completion_date="2025-02-10",
+        )
+
+        result = candidates(request, self.profile, self.events)
+        winner = best_plan(result.plans)
+
+        self.assertEqual(winner.method, "wait")
+        self.assertFalse(winner.needs_spending_changes)
+        self.assertIn(
+            "NO_SUFFICIENT_SPENDING_CHANGE_SET", {r.code for r in result.reasons}
+        )
+
+    def test_an_unwilling_user_is_never_asked_to_change_anything(self):
+        request = make_request(
+            request_date="2025-02-01",
+            requested_amount="5000",
+            desired_completion_date="2025-02-10",
+        )
+        unwilling = make_profile(balance="7000", minimum="2000")
+
+        result = candidates(request, unwilling, self.events)
+
+        self.assertFalse(any(plan.needs_spending_changes for plan in result.plans))
+        self.assertIn("NO_PERMITTED_SPENDING_CHANGE", {r.code for r in result.reasons})
+
+    def test_a_change_variant_is_still_certified_by_the_ledger(self):
+        """A sufficient saving is necessary, never sufficient: the floor still decides.
+
+        Here the squeeze is a 2,000 debit on the 5th, and the salary arrives on the
+        8th - so the worst balance of the whole window is already behind us before the
+        subscription is next charged on the 10th. Stopping it saves 2,500 against a
+        1,000 shortfall, which passes the arithmetic, and lifts the window minimum by
+        nothing at all, which fails the ledger. Only the ledger's answer is safe.
+        """
+        request = make_request(
+            request_date="2025-02-01",
+            requested_amount="4000",
+            desired_completion_date="2025-02-06",
+        )
+        squeeze = (
+            make_event(
+                event_id="event_early",
+                status="scheduled",
+                direction="debit",
+                amount="2000",
+                event_date="2025-02-05",
+                settlement_date="2025-02-05",
+            ),
+            make_event(
+                event_id="event_early_salary",
+                event_type="income",
+                status="scheduled",
+                direction="credit",
+                amount="10000",
+                event_date="2025-02-08",
+                settlement_date="2025-02-08",
+            ),
+        )
+        events = self.events[:-1] + squeeze  # the same history, an earlier salary
+        config = Config()
+        position = build_position(request, self.profile, events, config)
+        self.assertEqual(
+            amount_safe_to_pay(position, config, request.requested_amount),
+            Decimal("3000"),  # a 1,000 shortfall against a 2,500 saving
+        )
+
+        result = candidates(request, self.profile, events)
+
+        self.assertFalse(any(plan.needs_spending_changes for plan in result.plans))
+        codes = {r.code for r in result.reasons}
+        self.assertIn("PLAN_BREACHES_MINIMUM_BALANCE", codes)
+        # The distinction ticket 09 needs: a set *was* offered, and the ledger refused
+        # it. That is a different answer from "nothing you permit adds up".
+        self.assertIn("NO_CERTIFIED_SPENDING_CHANGE_SET", codes)
+
+
+class SpendingChangeUnlocksInstallmentsTest(unittest.TestCase):
+    """A change variant is built for installments too, not only for a full payment.
+
+    `AGENTS.md` section 6.2 names installments as one of the routes to
+    `affordable_with_plan` "through ... permitted spending changes", and the users this
+    matters for are precisely the ones who cannot take the full-payment route: across
+    the 250 evaluation requests, 48 of the users whose request finds no plan do not
+    accept `full_payment` at all.
+
+    The fixture: 7,500 against a 2,000 floor, a 2,500/month subscription charged on the
+    5th, and the seller's two-payment option on the 1st and the 8th. Taking the option
+    as supplied leaves 7,500 - 2,600 - 2,500 - 2,600 = -200 on the 8th, so it is pruned
+    as unsafe. Stopping the subscription removes the middle 2,500 and the same schedule
+    lands at 2,300 - above the floor, and now certifiable.
+    """
+
+    def setUp(self):
+        self.events = tuple(
+            make_event(
+                event_id=f"event_stream_{index}",
+                event_type="subscription",
+                description="Family streaming plan",
+                category="streaming",
+                flexibility="stoppable",
+                amount="2500",
+                event_date=f"{month}-05",
+                settlement_date=f"{month}-05",
+            )
+            for index, month in enumerate(("2024-11", "2024-12", "2025-01"))
+        )
+        self.request = make_request(
+            request_date="2025-02-01",
+            requested_amount="5000",
+            desired_completion_date="2025-02-10",
+        )
+        self.option = make_payment_option(
+            "payment_option_07",
+            payment_amount="2600",
+            number_of_payments=2,
+            first_payment_date="2025-02-01",
+            payment_frequency_days=7,
+            total_payable_amount="5200",
+        )
+        self.profile = make_profile(
+            balance="7500",
+            minimum="2000",
+            stoppable_categories=("streaming",),
+            payment_methods_considered=("installments",),
+            max_installment_months=6,
+        )
+
+    def test_the_option_is_eligible_and_unsafe_without_the_change(self):
+        """Guard the fixture: the option must be pruned by the floor, not by a gate."""
+        unwilling = replace(self.profile, stoppable_categories=())
+
+        result = candidates(
+            self.request, unwilling, self.events, options=(self.option,)
+        )
+
+        self.assertEqual(result.plans, ())
+        self.assertIn("PLAN_BREACHES_MINIMUM_BALANCE", {r.code for r in result.reasons})
+
+    def test_the_change_unlocks_the_suppliers_schedule_unaltered(self):
+        result = candidates(
+            self.request, self.profile, self.events, options=(self.option,)
+        )
+        winner = best_plan(result.plans)
+
+        self.assertEqual(winner.method, "installments")
+        self.assertEqual(winner.status, "affordable_with_plan")
+        self.assertTrue(winner.needs_spending_changes)
+        self.assertEqual(winner.spending_changes, ("stop:event_stream_2",))
+        self.assertEqual(winner.payment_option_id, "payment_option_07")
+        # The schedule is the seller's, untouched - a change buys safety, never a
+        # different plan than the one that was offered.
+        self.assertEqual(winner.payments, installment_schedule(self.option))
+
+    def test_the_full_payment_route_is_not_taken_for_a_user_who_refuses_it(self):
+        result = candidates(
+            self.request, self.profile, self.events, options=(self.option,)
+        )
+
+        self.assertEqual({plan.method for plan in result.plans}, {"installments"})
 
 
 if __name__ == "__main__":

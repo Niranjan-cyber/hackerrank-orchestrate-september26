@@ -318,6 +318,68 @@ An event is changeable only if **all** hold:
   changes") and do **not** alter `earliest_date_for_full_payment` (explicitly "without optional
   spending changes"). They only unlock `affordable_with_plan`.
 
+### Settled by ticket 08 (implemented in `code/engine/spending.py`)
+
+**Selection order is `smallest total saving → fewest changes → lowest event ids`, and the first two
+are in that order, not the other way round.** D8 originally wrote it as "fewest changes → smallest
+total saving"; `request_21` refutes that reading outright. Two *one-change* sets close its 31.05 gap
+— `stop:event_1816` (saves 47) and `reduce_to:event_1817` (shopping, saves 76.78) — and the published
+answer is the *two-change* `stop:event_1815|reduce_to:event_1816:23.50`, total 34.50, which is the
+smallest sufficient total there is. So the rule is "ask the user to give up as little as possible",
+and the preference for reducing rather than stopping an event eligible for both is a *consequence*
+of it rather than a rule of its own. (Under our own recurrence detection `event_1817` is not a
+detected stream — 2 tolerant occurrences of 5 — so only `stop:event_1816` is live, but the argument
+holds either way.) Pinned by `Sample21Test` and `SelectionTest` in the engine tests.
+
+**How big a saving is: one occurrence, measured on the cited event.** `stop` saves the cited event's
+amount; `reduce_to` saves its amount minus its `minimum_allowed_amount`; a set is offered only if the
+total covers the whole shortfall `requested_amount − amount_safe_to_pay` in a *single* occurrence.
+Later occurrences inside the 90-day window are a bonus the selection never spends. For a **variable**
+stream, where one projected occurrence is a whole month's forecast category total, the change lowers
+that total by the saving rather than collapsing it to one event's minimum — the conservative reading.
+`request_21`'s published 34.50-against-31.05 is exactly this one-occurrence arithmetic.
+
+**Sufficient is necessary, never sufficient — the ledger still certifies.** The changed position goes
+through the same `holds_floor` test as every other candidate, so a saving that lands *after* the day
+the floor is breached does not buy a plan. This is not hypothetical: it is why `request_117` keeps its
+late `wait` (its only pre-squeeze saving is 22 against a 46.35 shortfall; the dining reduction does not
+arrive until three weeks after the window minimum).
+
+**Two methods can be unlocked by a change: a full payment on `request_date`, and a supplied
+installment schedule.** AGENTS.md section 6.2 names both as routes to `affordable_with_plan`
+"through ... permitted spending changes", and 48 of the users whose request finds no plan do not
+accept `full_payment` at all, so building only full-payment variants would have left them a
+`not_recommended` they could act on. `wait` and `partial_payment` genuinely cannot be expressed:
+`wait` must be paid on `earliest_date_for_full_payment` and `partial_payment`'s first payment must
+equal `amount_safe_to_pay`, and both columns are published *before* changes, so a change-funded
+earlier date or larger first payment would contradict the row reporting it. The shortfall gate
+`requested_amount − amount_safe_to_pay` applies to the full-payment variant only — it means nothing
+for a schedule spread over three months — so installment variants are certified against the ledger
+alone. Samples 06, 11 and 21 are all the full-payment shape.
+
+**Divergence on sample 11, diagnosed rather than special-cased.** Published:
+`reduce_to:event_989:665950`. The engine's *selection* picks
+`stop:event_949|reduce_to:event_989:665950` - the cited dining event is right, and the extra
+cloud-storage stop is there because the conservative one-occurrence dining saving
+(1,163,530.49 - 665,950 = 497,580.49) does not reach the published 599,355 shortfall alone. But
+selection is not the real blocker. **At the published shortfall no permitted set certifies at all,
+the published one included** - measured, not assumed. The binding window minimum falls on
+**2025-05-14** (the projected cloud-storage occurrence), while `user_11`'s dining stream is
+*variable*, so ticket 05 places its whole monthly total on the earliest observed day-of-month - the
+2nd - and its first projected occurrence is **2025-06-02**, three weeks past that minimum. A saving
+that lands after the squeeze lifts nothing, so the ledger refuses every variant
+(`reduce_to:event_989` alone leaves the minimum at 33,541,245 against a 34,140,600 floor). The
+divergence is therefore **projection placement, ticket 05/14**, not the selection rule: for the whole
+of May, `user_11` is forecast to spend nothing at all on dining. Worth a look in calibration - "place
+variable spend on the earliest observed day" is conservative for the *debit* but makes the matching
+*saving* arrive as late as it possibly can.
+
+Separately, end to end this request never reaches the change search: our `earliest` for `user_11` is
+2025-05-15, before the 2025-06-12 deadline, so a no-change `wait` completes and the pruning rule
+correctly declines to offer changes (the published `earliest` is 2025-07-15 - ticket 06/14 capacity
+calibration). All of it is asserted in `Sample11Test`, so closing any part is a visible change rather
+than a silent drift.
+
 ---
 
 ## 11. Output invariants (deterministic validator must enforce all)
@@ -380,11 +442,11 @@ Full records to be written as ADRs under `docs/adr/` during `/to-spec`; summaris
 | D5 | Arithmetic | `Decimal` constructed from `str`. **Exact arithmetic with no intermediate rounding**; floor comparisons run on exact values; quantize to 2dp **only at output**, `ROUND_HALF_UP`. **One carve-out:** a *modelled forecast statistic* (the variable-spend monthly total) is normalised to the home-currency 2dp scale by `money.money_scale` before it enters the ledger — it is an amount of money, not raw ledger arithmetic, and a mean-of-N is otherwise non-terminating, which makes sums order-dependent at the Decimal context precision. | Round 2 correction: directional rounding (`ROUND_DOWN`) is *wrong for a graded value* — it can miss ground truth by a cent for no safety benefit, because exact comparison already guarantees the floor holds. Rounding is a presentation concern, not a safety one. Supersedes both earlier positions. |
 | D6 | Ranking | Lexicographic comparison on a 6-tuple | A weighted score can trade away a deadline; the spec forbids that |
 | D7 | `reduce_to` target | Always `minimum_allowed_amount` | Matches every sample exactly |
-| D8 | Change-set selection | Smallest sufficient set: fewest changes → smallest total saving that still passes → lowest `event_id` | `request_21` chose reduce-over-stop when stop would have over-saved |
+| D8 | Change-set selection | ~~fewest changes → smallest total saving~~ **CORRECTED by ticket 08: smallest total saving that still passes → fewest changes → lowest `event_id`.** | `request_21` chose reduce-over-stop when stop would have over-saved — and, decisively, chose a *two*-change set (34.50) over two available *one*-change sets (47 and 76.78). Fewest-changes-first cannot produce the published answer; smallest-saving-first produces it exactly, and yields the reduce-over-stop preference for free. Full argument in section 10. |
 | D9 | ~~Ignore rows marked as possible duplicates~~ **REVERSED — reserve them** | **Reserve** all 6 "Possible duplicate card charge" pending debits | Verification reversal: **all 6 have a dispute message stating "a reversal has not been posted to the account yet; the dispute is open"** (`message_106/121/157/164/183/197`). The money is still out. The spec's "ignore duplicate records" means **duplicate representations of one event** (README:112 "de-duplicate repeated representations of the same event") — not a genuine second charge under open dispute. Conflict precedence rule 4 ("the financially safer interpretation") independently requires reserving. **The true de-duplication case is `internal_transfer`** (6 messages), where a matching debit+credit between the user's own accounts must net to zero. **Amended by ticket 04:** those 6 messages have *no event rows behind them* — all 6 carry a blank `related_event_id`, and a full scan finds no equal-magnitude debit/credit pair for 5 of the 6 users in any currency, on any date, in any status (the 6th, `user_261`, has only the ordinary settled card-reversal pair). There is no `transfer` event type in the schema at all; credits are only `income`/`refund`/`investment_sale`. So the netting requirement is satisfied with **no code**: nothing exists to net, any equal-and-opposite settled pair is already inside the opening balance, and fabricating the missing legs would be inventing financial facts. Pinned by `test_no_internal_transfer_pair_exists_as_event_rows`. |
 | D10 | Dependencies | **Zero runtime dependencies — stdlib only.** Model calls go out over stdlib `urllib.request` to Groq's OpenAI-compatible REST endpoint. | Updated after the provider finding: the `anthropic` SDK is moot without an Anthropic key, and a REST call over `urllib` removes the last third-party package. A grader then needs nothing but Python. `pandas` stays rejected (dtype coercion threatens determinism); `rapidfuzz` stays rejected (stdlib `difflib` suffices). |
 | D11 | Explanations | Deterministic templates **rendered from reason codes** | Consistency is graded; stops injected text reaching a graded column; reason codes make it grounded rather than generic |
-| D12 | Is `desired_completion_date` a hard gate or a ranking level? | **Both, split by method**: hard for `partial` and `installments`, soft for `wait` | `problem_statement.md:180` states it as a requirement and line 191 lists it as ranking criterion 1; a uniform hard gate makes criterion 1 dead code and forces `not_affordable` on a request whose full amount *is* "expected to become safe later" — the published definition of `affordable_later`. Gating only the two methods the problem statement gates explicitly keeps every stated line true. Reversible through `Config.wait_must_complete_by_deadline` / `Config.installments_must_complete_by_deadline`. Changed the ticket-06 assertion in `test_pipeline_decide.py`; `earliest` propagation is unaffected. **Blast radius: 4 of 250 rows** (`request_78`, `request_117`, `request_120`, `request_121`); three miss the deadline by one day, the samples `06`/`11`/`21` signature, so ticket 08 should convert them to deadline-meeting change plans - tracked as a prediction in issue 08. |
+| D12 | Is `desired_completion_date` a hard gate or a ranking level? | **Both, split by method**: hard for `partial` and `installments`, soft for `wait` | `problem_statement.md:180` states it as a requirement and line 191 lists it as ranking criterion 1; a uniform hard gate makes criterion 1 dead code and forces `not_affordable` on a request whose full amount *is* "expected to become safe later" — the published definition of `affordable_later`. Gating only the two methods the problem statement gates explicitly keeps every stated line true. Reversible through `Config.wait_must_complete_by_deadline` / `Config.installments_must_complete_by_deadline`. Changed the ticket-06 assertion in `test_pipeline_decide.py`; `earliest` propagation is unaffected. **Blast radius: 4 of 250 rows** (`request_78`, `request_117`, `request_120`, `request_121`); three miss the deadline by one day, the samples `06`/`11`/`21` signature, so ticket 08 should convert them to deadline-meeting change plans - tracked as a prediction in issue 08. **Outcome (ticket 08): 1 converted, 3 stand, each for a checked reason.** `request_78` became `reduce_to:event_7224:805` + `full_payment` on `request_date`. `request_120` (shortfall 858,412.97 against a single permitted stop worth 630,800) and `request_121` (shortfall 364.76 against four permitted changes totalling 45.01) have no permitted set that closes the gap at all. `request_117` has one - `stop:event_10833` + `reduce_to:event_10878` = 47.61 against 46.35 - but the dining half of it first lands on 2026-08-03, three weeks after the window minimum on 2026-07-10, so the ledger refuses it and only 22 of the saving is real. In all three the late `wait` is the honest answer, which is the branch the prediction named. |
 
 ### Confirmed with the user (2026-09-12)
 

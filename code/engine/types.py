@@ -149,6 +149,10 @@ class Reason:
     code: str
     event_id: str | None = None
     amount: Decimal | None = None
+    # Only set when `amount` is NOT in the user's home currency - a `reduce_to` target
+    # is quoted in the commitment's own currency, so a renderer that assumed home would
+    # print a foreign figure under the home code. Blank means home currency.
+    currency: str = ""
     detail: str = ""
 
 
@@ -186,6 +190,11 @@ class Config:
     # when it lands late so that level 1 has something to decide. Unfrozen: ticket 14.
     installments_must_complete_by_deadline: bool = True
     wait_must_complete_by_deadline: bool = False
+
+    # spending changes, ticket 08/14. Three is the contract's ceiling
+    # (`problem_statement.md:171`), not a preference - the selection rule already
+    # prefers the smallest sufficient set, so lowering this only forbids answers.
+    max_spending_changes: int = 3
 
     # recurrence boundaries / calibration, ticket 05/14
     weekly_date_tolerance_days: int = 2
