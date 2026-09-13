@@ -174,6 +174,24 @@ In case, the harness you are using is not in the repo root, you can explicitly a
 
 ---
 
+## Running This Submission (For Graders)
+
+This solution is Python, entry point `code/main.py`.
+
+```bash
+python3 code/main.py
+```
+
+(`python3` is a broken WindowsApps stub on some Windows setups; use `python` there instead — both run the same script.) The command reads `dataset/` from the repository root, writes `output.csv` to the repository root, and prints `validation : clean` on success.
+
+Notes:
+
+- **`PYTHONHASHSEED=0`** — set this environment variable before running for byte-for-byte determinism across interpreter invocations (set ordering inside the engine is otherwise seed-dependent in principle; every set is `sorted()` before use, so in practice the output is identical either way, but the variable is documented here so a re-run is reproducible without relying on that).
+- **The run is fully offline and cache-backed.** All 231 extraction facts the pipeline needs (215 message facts, 16 image amounts) ship as committed fixtures under `fixtures/`. The run makes **zero live model calls** and needs no API key — see `evaluation/usage_report.md` for the full accounting, including the one-time historical cost of building that fixture cache.
+- A second run reproduces `output.csv` byte-for-byte, since the fixture cache never changes and every step downstream of it is deterministic Python.
+
+---
+
 ## Submission
 
 Submit the following files as instructed by HackerRank:
