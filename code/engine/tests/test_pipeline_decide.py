@@ -242,7 +242,7 @@ class SpendingChangeExplanationTest(unittest.TestCase):
         self.assertEqual(row.affordability_status, "affordable_with_plan")
         self.assertTrue(
             row.decision_explanation.startswith(
-                "Stop the family streaming plan, then pay INR 5000"
+                "Stop the family streaming plan, then pay INR 5,000"
             ),
             row.decision_explanation,
         )

@@ -82,6 +82,29 @@ def format_safe_amount(value: Decimal) -> str:
     return text or "0"
 
 
+def format_explanation_amount(value: Decimal) -> str:
+    """`decision_explanation` prose form: comma-grouped thousands.
+
+    Same digits as `format_plan_amount` - 2dp when fractional, else a bare integer -
+    but grouped, because the samples group thousands in prose ("ZAR 25,256") while the
+    graded `payment_plan` / `reduce_to` columns never do ("25256"). See CONTEXT.md
+    section 11.12. Never use this for a value that reaches a CSV column.
+
+    Built by grouping `format_plan_amount`'s own digit string rather than re-branching
+    on `quantize`/`to_integral_value` a second time, so the "2dp when fractional, else
+    bare integer" rule can only ever be defined in one place.
+    """
+    return _group_thousands(format_plan_amount(value))
+
+
+def _group_thousands(digits: str) -> str:
+    """Insert comma separators into an already-formatted plain decimal string."""
+    sign, magnitude = ("-", digits[1:]) if digits.startswith("-") else ("", digits)
+    integer_part, dot, fraction_part = magnitude.partition(".")
+    grouped = format(int(integer_part), ",")
+    return f"{sign}{grouped}{dot}{fraction_part}"
+
+
 def clamp(value: Decimal, low: Decimal, high: Decimal) -> Decimal:
     """Hold the core invariant `0 <= amount_safe_to_pay <= requested_amount`."""
     if value < low:

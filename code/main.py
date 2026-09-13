@@ -17,13 +17,15 @@ Ticket 03 supplies the fixture-backed `ExtractionPort` that fills it in.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from engine.loaders import load_dataset  # noqa: E402
-from engine.pipeline import run_pipeline  # noqa: E402
+from engine.pipeline import run_pipeline, trace_request  # noqa: E402
+from engine.trace import render_ledger, trace_payload  # noqa: E402
 from engine.types import Config, Dataset, Fact  # noqa: E402
 from engine.validate import validate_and_write  # noqa: E402
 
@@ -65,6 +67,38 @@ def gather_facts(
     return facts
 
 
+def _trace(
+    dataset: Dataset,
+    facts: tuple[Fact, ...],
+    config: Config,
+    request_id: str,
+    trace_out: Path | None,
+) -> int:
+    """Ticket 09: print one request's decision and day-by-day ledger.
+
+    Deliberately does not call `validate_and_write` - a trace is a developer-facing
+    diagnostic, and `code/engine/validate.py` stays the sole writer of `output.csv`.
+    """
+    trace = trace_request(request_id, dataset, facts, config)
+    row = trace.row
+
+    print(f"request_id         : {row.request_id}")
+    print(f"affordability      : {row.affordability_status}")
+    print(f"payment_method     : {row.recommended_payment_method}")
+    print(f"amount_safe_to_pay : {row.amount_safe_to_pay}")
+    print(f"decision_explanation:\n  {row.decision_explanation}")
+    print()
+    print(render_ledger(trace.ledger))
+
+    if trace_out is not None:
+        payload = trace_payload(request_id, trace.ledger, row.reasons)
+        trace_out.parent.mkdir(parents=True, exist_ok=True)
+        trace_out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        print(f"\ntrace written      : {trace_out}")
+
+    return 0
+
+
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Buy or Wait? - produce output.csv for a requests file."
@@ -98,6 +132,23 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Run with empty facts, matching the ticket 01 tracer bullet.",
     )
+    parser.add_argument(
+        "--trace-request",
+        default=None,
+        help=(
+            "Print the day-by-day ledger for one request_id and skip writing "
+            "output.csv. Off the output.csv path entirely (Ticket 09)."
+        ),
+    )
+    parser.add_argument(
+        "--trace-out",
+        type=Path,
+        default=None,
+        help=(
+            "With --trace-request, also write the full JSON trace (ledger + "
+            "reasons) to this path."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -114,6 +165,10 @@ def main(argv: list[str] | None = None) -> int:
     dataset = load_dataset(dataset_dir, requests_path)
     fixtures_dir = None if args.no_extraction else Path(args.fixtures_dir)
     facts = gather_facts(dataset, dataset_dir, fixtures_dir)
+
+    if args.trace_request is not None:
+        return _trace(dataset, facts, config, args.trace_request, args.trace_out)
+
     rows = run_pipeline(dataset, facts, config)
     violations = validate_and_write(rows, dataset, output_path)
 

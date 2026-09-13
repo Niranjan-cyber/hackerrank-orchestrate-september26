@@ -75,6 +75,7 @@ STALE_CREDIT_NOT_COUNTED = "STALE_CREDIT_NOT_COUNTED"
 CANCELLED_IGNORED = "CANCELLED_IGNORED"
 FAILED_IGNORED = "FAILED_IGNORED"
 NON_CASH_IGNORED = "NON_CASH_IGNORED"
+UNREALIZED_VALUATION_EXCLUDED = "UNREALIZED_VALUATION_EXCLUDED"
 BLANK_AMOUNT_UNRESOLVED = "BLANK_AMOUNT_UNRESOLVED"
 PROJECTED_RECURRING_EXPENSE = "PROJECTED_RECURRING_EXPENSE"
 PROJECTED_RECURRING_INCOME = "PROJECTED_RECURRING_INCOME"
@@ -217,7 +218,15 @@ def classify_event(
     # --- rows that never move cash, whatever their amount or date -----------------
     # Checked first so that a cancelled or non-cash row with a blank amount can never
     # reach the amount-resolution path below and raise on a value nobody needs.
-    if event.direction == "non_cash" or event.status == "unrealized":
+    # `unrealized` is checked ahead of the general non-cash test so ticket 09 can name
+    # an excluded mark-to-market valuation distinctly from an ordinary non-cash row -
+    # in the supplied dataset every `unrealized` row is also `non_cash`, so this is a
+    # naming refinement rather than a change of state.
+    if event.status == "unrealized":
+        return effect(
+            EXCLUDED, UNREALIZED_VALUATION_EXCLUDED, value=None, when=event.cash_date
+        )
+    if event.direction == "non_cash":
         return effect(EXCLUDED, NON_CASH_IGNORED, value=None, when=event.cash_date)
     if event.status == "cancelled":
         return effect(EXCLUDED, CANCELLED_IGNORED, value=None, when=event.cash_date)

@@ -8,33 +8,54 @@ solved samples run with no credential and no API.
 
 BUILD STATE - READ THIS BEFORE JUDGING THE LOGIC
 The seam signature and every output invariant are final, so each ticket replaces the
-body of `_decide` without touching anything around it. Implemented so far:
+body of `_build_decision` without touching anything around it. Implemented so far:
 
   04  cash-state classification and the event lifecycle          (committed)
   05  recurrence detection and projection                        (committed)
   06  the 90-day simulation, amount_safe_to_pay, earliest date   (committed)
   07  candidate plans and lexicographic ranking                  (committed)
-  08  spending changes and the pruning rule                      (this change)
+  08  spending changes and the pruning rule                      (committed)
+  09  reason codes, rendered explanations and the trace ledger   (this change)
 
 Still to come, and deliberately absent here:
 
-  09  reason codes and rendered explanations - the `_explain*` renderers at the foot
-      of this file are the placeholder. Ticket 08 left two things for it: the amounts
-      are printed without the thousands separators the samples use ("INR 50200", not
-      "INR 50,200"), and the change clauses are rendered from `SPENDING_CHANGE_*`
-      reason codes, which is the shape ticket 09 generalises.
-  10  evidence authority and conflict precedence
+  10  evidence authority and conflict precedence - `extraction_facts` is threaded all
+      the way to `_build_decision` but not yet read there; every row today is decided
+      from the dataset alone.
 """
 
 from __future__ import annotations
 
-from .cash import UnresolvedAmountError, cash_position
-from .money import ZERO, format_plan_amount
-from .plans import best_plan, candidate_plans, required_horizon_end
+from dataclasses import dataclass, replace
+from decimal import Decimal
+from typing import Sequence
+
+from .cash import (
+    UNKNOWN_AMOUNT,
+    CashPosition,
+    UnresolvedAmountError,
+    cash_position,
+)
+from .money import ZERO, format_explanation_amount
+from .plans import Plan, best_plan, candidate_plans, required_horizon_end
 from .recurrence import default_horizon_end, detect_streams, with_projections
-from .simulate import amount_safe_to_pay, earliest_date_for_full_payment
+from .simulate import (
+    Ledger,
+    amount_safe_to_pay,
+    earliest_date_for_full_payment,
+    simulate,
+)
 from .spending import eligible_changes
 from .types import Config, Dataset, Fact, OutputRow, Reason
+
+
+def _facts_by_user(
+    extraction_facts: tuple[Fact, ...],
+) -> dict[str, tuple[Fact, ...]]:
+    grouped: dict[str, list[Fact]] = {}
+    for fact in extraction_facts:
+        grouped.setdefault(fact.user_id, []).append(fact)
+    return {user_id: tuple(facts) for user_id, facts in grouped.items()}
 
 
 def run_pipeline(
@@ -43,24 +64,101 @@ def run_pipeline(
     config: Config,
 ) -> tuple[OutputRow, ...]:
     """Decide every request. One output row per request, in dataset order."""
-    facts_by_user: dict[str, list[Fact]] = {}
-    for fact in extraction_facts:
-        facts_by_user.setdefault(fact.user_id, []).append(fact)
-
+    facts_by_user = _facts_by_user(extraction_facts)
     return tuple(
         _decide(
             request=request,
             dataset=dataset,
-            facts=tuple(facts_by_user.get(request.user_id, ())),
+            facts=facts_by_user.get(request.user_id, ()),
             config=config,
         )
         for request in dataset.requests
     )
 
 
+@dataclass(frozen=True, slots=True)
+class RequestTrace:
+    """Everything Ticket 09 needs to explain one request: the published row and the
+    day-by-day ledger it was certified against.
+
+    The ledger is the winning plan's own (`Plan.ledger` - already computed once by
+    `plans._certify`, and reused rather than re-simulated, so a trace can never
+    disagree with the certification that produced the row). When nothing was safe,
+    there is no plan to point at, so this falls back to the base position with no
+    payment injected - the same ledger the pruning reasons in `row.reasons` refer to.
+    """
+
+    row: OutputRow
+    ledger: Ledger
+
+
+def trace_request(
+    request_id: str,
+    dataset: Dataset,
+    extraction_facts: tuple[Fact, ...],
+    config: Config,
+) -> RequestTrace:
+    """Rebuild one request's decision, paired with its certifying ledger.
+
+    A developer-facing entry point, not one the deterministic core calls itself -
+    `code/main.py` is the only caller. Recomputes rather than caching, because a
+    per-request trace is asked for occasionally, not on every run, and `_build_decision`
+    is pure and cheap for one request.
+    """
+    request = next(
+        (r for r in dataset.requests if r.request_id == request_id), None
+    )
+    if request is None:
+        raise ValueError(f"no such request: {request_id}")
+
+    facts = _facts_by_user(extraction_facts).get(request.user_id, ())
+    decision = _build_decision(
+        request=request, dataset=dataset, facts=facts, config=config
+    )
+    if decision.chosen is not None and decision.chosen.ledger is not None:
+        ledger = decision.chosen.ledger
+    else:
+        try:
+            ledger = simulate(decision.position, config)
+        except UnresolvedAmountError:
+            # The same still-blank future outflow that made `_build_decision` degrade
+            # to `safe=ZERO, earliest=None` (see FORECAST_INCOMPLETE_UNRESOLVED_AMOUNT
+            # in `decision.row.reasons`) makes an honest ledger impossible here too.
+            # A trace is a diagnostic, not a certification, so it drops the unresolved
+            # rows rather than crashing - the reason already on the row is what tells a
+            # developer the ledger below is incomplete and why.
+            resolvable = replace(
+                decision.position,
+                effects=tuple(
+                    effect
+                    for effect in decision.position.effects
+                    if effect.state != UNKNOWN_AMOUNT
+                ),
+            )
+            ledger = simulate(resolvable, config)
+    return RequestTrace(row=decision.row, ledger=ledger)
+
+
+@dataclass(frozen=True, slots=True)
+class _Decision:
+    """Internal: everything `_decide` computes, kept around for `trace_request`."""
+
+    row: OutputRow
+    position: CashPosition
+    chosen: Plan | None
+
+
 def _decide(
     request, dataset: Dataset, facts: tuple[Fact, ...], config: Config
 ) -> OutputRow:
+    return _build_decision(
+        request=request, dataset=dataset, facts=facts, config=config
+    ).row
+
+
+def _build_decision(
+    request, dataset: Dataset, facts: tuple[Fact, ...], config: Config
+) -> _Decision:
     profile = dataset.profiles[request.user_id]
     reasons: list[Reason] = []
 
@@ -230,7 +328,8 @@ def _decide(
                 detail="no eligible payment method survived the floor test",
             )
         )
-        return OutputRow(
+        reasons_tuple = tuple(reasons)
+        row = OutputRow(
             request_id=request.request_id,
             amount_safe_to_pay=safe,
             affordability_status="not_affordable",
@@ -242,12 +341,16 @@ def _decide(
             # when the full amount is never safe in the forecast period.
             earliest_date_for_full_payment=earliest,
             spending_changes_needed=(),
-            decision_explanation=_explain_not_recommended(request, profile, safe),
-            reasons=tuple(reasons),
+            decision_explanation=_explain_not_recommended(
+                request, profile, safe, reasons_tuple
+            ),
+            reasons=reasons_tuple,
         )
+        return _Decision(row=row, position=position, chosen=None)
 
     reasons.extend(chosen.reasons)
-    return OutputRow(
+    reasons_tuple = tuple(reasons)
+    row = OutputRow(
         request_id=request.request_id,
         amount_safe_to_pay=safe,
         affordability_status=chosen.status,
@@ -255,43 +358,58 @@ def _decide(
         payment_plan=chosen.payments,
         earliest_date_for_full_payment=earliest,
         spending_changes_needed=chosen.spending_changes,
-        decision_explanation=_explain(chosen, request, profile),
-        reasons=tuple(reasons),
+        decision_explanation=_explain(chosen, request, profile, reasons_tuple),
+        reasons=reasons_tuple,
     )
+    return _Decision(row=row, position=position, chosen=chosen)
 
 
 # --- explanation templates --------------------------------------------------------
-# Deterministic and rendered from engine state, never model-written (D14). Ticket 09
-# replaces these with reason-code rendering; the shape is already the sample style:
-# "Pay ZAR 25,256 today. This leaves at least ZAR 18,000 available over the next 90 days."
+# Deterministic and rendered from engine state, never model-written (D14). Amounts and
+# the minimum-balance floor are read off the `reasons` this same request already
+# collected (D11: "rendered from reason codes") rather than re-derived, so an
+# explanation can never cite a number the row's own provenance disagrees with. The
+# shape is the sample style: "Pay ZAR 25,256 today. This leaves at least ZAR 18,000
+# available over the next 90 days." - comma-grouped, unlike the graded CSV columns.
 
 
-def _explain_now(request, profile) -> str:
+def _floor(reasons: Sequence[Reason], profile) -> Decimal:
+    for reason in reasons:
+        if reason.code == "MINIMUM_BALANCE_FLOOR" and reason.amount is not None:
+            return reason.amount
+    return profile.minimum_balance_to_keep  # defensive: always present in practice
+
+
+def _explain_now(request, profile, reasons: Sequence[Reason]) -> str:
     return (
-        f"Pay {profile.home_currency} {format_plan_amount(request.requested_amount)} "
+        f"Pay {profile.home_currency} "
+        f"{format_explanation_amount(request.requested_amount)} "
         f"on {request.request_date.isoformat()}. This keeps at least "
-        f"{profile.home_currency} {format_plan_amount(profile.minimum_balance_to_keep)} "
+        f"{profile.home_currency} {format_explanation_amount(_floor(reasons, profile))} "
         f"available."
     )
 
 
-def _explain_wait(request, profile, earliest) -> str:
+def _explain_wait(request, profile, earliest, reasons: Sequence[Reason]) -> str:
     return (
         f"Wait until {earliest.isoformat()} before paying "
-        f"{profile.home_currency} {format_plan_amount(request.requested_amount)}. "
+        f"{profile.home_currency} "
+        f"{format_explanation_amount(request.requested_amount)}. "
         f"That is the earliest date the full payment keeps at least "
-        f"{profile.home_currency} {format_plan_amount(profile.minimum_balance_to_keep)} "
+        f"{profile.home_currency} {format_explanation_amount(_floor(reasons, profile))} "
         f"available."
     )
 
 
-def _explain_not_recommended(request, profile, safe) -> str:
+def _explain_not_recommended(
+    request, profile, safe, reasons: Sequence[Reason]
+) -> str:
     return (
         f"Paying {profile.home_currency} "
-        f"{format_plan_amount(request.requested_amount)} is not safe on "
+        f"{format_explanation_amount(request.requested_amount)} is not safe on "
         f"{request.request_date.isoformat()}. At most {profile.home_currency} "
-        f"{format_plan_amount(safe)} can be paid while keeping "
-        f"{profile.home_currency} {format_plan_amount(profile.minimum_balance_to_keep)} "
+        f"{format_explanation_amount(safe)} can be paid while keeping "
+        f"{profile.home_currency} {format_explanation_amount(_floor(reasons, profile))} "
         f"available."
     )
 
@@ -299,8 +417,9 @@ def _explain_not_recommended(request, profile, safe) -> str:
 def _change_clauses(plan, profile) -> str:
     """ "Stop the online backup subscription and reduce the streaming subscription..."
 
-    The commitment names come off the plan's own reason codes, so the sentence is
-    rendered from engine state rather than re-derived from the dataset (D11/D14).
+    The commitment names and amounts come off the plan's own `SPENDING_CHANGE_*`
+    reason codes (D11), never re-derived from the dataset, so the sentence can only
+    ever describe a change the plan actually carries in `spending_changes_needed`.
     """
     clauses = []
     for reason in plan.reasons:
@@ -313,7 +432,7 @@ def _change_clauses(plan, profile) -> str:
             # output column cites the same number.
             clauses.append(
                 f"reduce the {name} to {reason.currency or profile.home_currency} "
-                f"{format_plan_amount(reason.amount)}"
+                f"{format_explanation_amount(reason.amount)}"
             )
     if not clauses:  # defensive: a change plan always carries its change reasons
         return ""
@@ -322,8 +441,8 @@ def _change_clauses(plan, profile) -> str:
     return ", ".join(clauses[:-1]) + f" and {clauses[-1]}"
 
 
-def _explain(plan, request, profile) -> str:
-    """Render the winning plan. Ticket 09 replaces this with reason-code rendering.
+def _explain(plan, request, profile, reasons: Sequence[Reason]) -> str:
+    """Render the winning plan from its own reason codes (D11).
 
     A spending-change plan is the method's own sentence with the changes in front of
     it - "Stop the family streaming plan, then pay EUR 620.40 on 2026-01-03." - rather
@@ -331,7 +450,7 @@ def _explain(plan, request, profile) -> str:
     installment plan funded by a change therefore still says it is three payments,
     which a single hard-coded "then pay X today" tail would have got wrong.
     """
-    body = _explain_method(plan, request, profile)
+    body = _explain_method(plan, request, profile, reasons)
     if not plan.needs_spending_changes:
         return body
     changes = _change_clauses(plan, profile)
@@ -340,33 +459,33 @@ def _explain(plan, request, profile) -> str:
     return f"{changes[0].upper()}{changes[1:]}, then {body[0].lower()}{body[1:]}"
 
 
-def _explain_method(plan, request, profile) -> str:
+def _explain_method(plan, request, profile, reasons: Sequence[Reason]) -> str:
     if plan.method == "full_payment":
-        return _explain_now(request, profile)
+        return _explain_now(request, profile, reasons)
     if plan.method == "wait":
-        return _explain_wait(request, profile, plan.start_date)
+        return _explain_wait(request, profile, plan.start_date, reasons)
     if plan.method == "partial_payment":
-        return _explain_partial(request, profile, plan)
-    return _explain_installments(request, profile, plan)
+        return _explain_partial(request, profile, plan, reasons)
+    return _explain_installments(request, profile, plan, reasons)
 
 
-def _explain_partial(request, profile, plan) -> str:
+def _explain_partial(request, profile, plan, reasons: Sequence[Reason]) -> str:
     (_, today), (later_date, later) = plan.payments
     return (
-        f"Pay {profile.home_currency} {format_plan_amount(today)} on "
+        f"Pay {profile.home_currency} {format_explanation_amount(today)} on "
         f"{request.request_date.isoformat()} and the remaining "
-        f"{profile.home_currency} {format_plan_amount(later)} on "
+        f"{profile.home_currency} {format_explanation_amount(later)} on "
         f"{later_date.isoformat()}. This completes the full request and keeps "
         f"{profile.home_currency} "
-        f"{format_plan_amount(profile.minimum_balance_to_keep)} protected."
+        f"{format_explanation_amount(_floor(reasons, profile))} protected."
     )
 
 
-def _explain_installments(request, profile, plan) -> str:
+def _explain_installments(request, profile, plan, reasons: Sequence[Reason]) -> str:
     amount = plan.payments[0][1]
     return (
         f"Use {plan.payment_count} installments of {profile.home_currency} "
-        f"{format_plan_amount(amount)}, starting {plan.start_date.isoformat()}. "
+        f"{format_explanation_amount(amount)}, starting {plan.start_date.isoformat()}. "
         f"This keeps at least {profile.home_currency} "
-        f"{format_plan_amount(profile.minimum_balance_to_keep)} available."
+        f"{format_explanation_amount(_floor(reasons, profile))} available."
     )

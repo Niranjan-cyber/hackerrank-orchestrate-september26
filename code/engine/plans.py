@@ -57,7 +57,7 @@ from typing import Sequence
 
 from .cash import CashPosition, UnresolvedAmountError
 from .money import ZERO
-from .simulate import ProjectionHorizonError, simulate
+from .simulate import Ledger, ProjectionHorizonError, simulate
 from .spending import (
     STOP,
     SpendingChange,
@@ -102,6 +102,12 @@ class Plan:
     payment_option_id: str | None = None
     spending_changes: tuple[str, ...] = ()
     reasons: tuple[Reason, ...] = field(default_factory=tuple)
+    # The ledger this plan was actually certified against - the changed position for a
+    # spending-change variant, the base position otherwise. Ticket 09's per-request
+    # trace renders this rather than re-simulating, so a trace can never disagree with
+    # the certification that produced the row. `None` only for a hand-built `Plan` in
+    # a ranking test, which never reads this field.
+    ledger: Ledger | None = None
 
     @property
     def start_date(self) -> date:
@@ -635,6 +641,7 @@ class _CandidateBuilder:
                 reasons=_plan_reasons(
                     method, total_paid, ledger, payment_option_id, spending_changes
                 ),
+                ledger=ledger,
             )
         )
 
