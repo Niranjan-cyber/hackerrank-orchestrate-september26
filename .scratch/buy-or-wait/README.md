@@ -26,7 +26,7 @@ boxes and noting completion at the top. Do not edit a ticket owned by the other 
            |-- 06 simulator + safe amount + earliest date [Claude]
            |    |-- 07 plans + ranking      [Claude]
            |         |-- 08 spending changes + pruning [Claude]
-           |         |    |-- 13 focused unit tests    [OpenCode]
+            |         |    |-- 13 focused unit tests    [OpenCode]  DONE
            |         |-- 09 reason codes + explanation + trace [Claude]
            |-- 10 evidence authority + conflicts  [Claude]  (also needs 03)  DONE
 
